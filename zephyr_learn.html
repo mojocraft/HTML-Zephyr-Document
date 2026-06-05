@@ -82,6 +82,13 @@
     display: flex; align-items: center; gap: 10px;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border: 1px solid var(--border);
+    cursor: pointer; user-select: none;
+    transition: all 0.25s ease;
+  }
+  main h2:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-color: #94a3b8;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
   main h2 .icon {
     width: 32px; height: 32px; border-radius: 7px;
@@ -104,7 +111,22 @@
   .topic-fundamentals .icon, .icon-fundamentals { background: var(--primary); }
 
   .topic-section { margin-bottom: 36px; }
-  .topic-section.collapsed .qa-list { display: none; }
+  .topic-section .qa-list {
+    overflow: hidden;
+    transition: max-height 0.45s ease, opacity 0.35s ease;
+    max-height: 30000px;  /* 足够大以容纳所有内容 */
+    opacity: 1;
+  }
+  .topic-section.collapsed .qa-list {
+    max-height: 0;
+    opacity: 0;
+  }
+  .topic-section .sec-arrow {
+    margin-left: auto; font-size: 0.9rem;
+    transition: transform 0.35s ease;
+    color: var(--text-secondary);
+  }
+  .topic-section.collapsed .sec-arrow { transform: rotate(-90deg); }
 
   /* ── 问答卡片 ── */
   .qa-card {
@@ -2821,14 +2843,33 @@ function updateStats() {
       ? `<span class="stat">当前显示 <strong>${visible.length}</strong> 条</span>` : '');
 }
 
+function toggleSection(h2) {
+  const sec = h2.closest('.topic-section');
+  sec.classList.toggle('collapsed');
+}
+
 (function buildTOC() {
   const toc = document.getElementById('toc');
   document.querySelectorAll('.topic-section').forEach(sec => {
+    // 默认折叠
+    sec.classList.add('collapsed');
+
     const h2 = sec.querySelector('h2');
     const count = sec.querySelectorAll('.qa-card').length;
+
+    // 给标题加箭头
+    const arrow = document.createElement('span');
+    arrow.className = 'sec-arrow';
+    arrow.textContent = '▾';
+    h2.appendChild(arrow);
+
+    // 点击标题展开/折叠
+    h2.addEventListener('click', () => toggleSection(h2));
+
+    // 侧边栏
     const a = document.createElement('a');
     a.href = '#' + sec.id;
-    a.innerHTML = `${h2.textContent.trim()} <span class="badge">${count}</span>`;
+    a.innerHTML = `${h2.textContent.trim().replace('▾','')} <span class="badge">${count}</span>`;
     const li = document.createElement('li');
     li.appendChild(a);
     toc.appendChild(li);
@@ -2901,8 +2942,24 @@ function filterBy(topic) {
   updateStats();
 }
 
-function expandAll() { document.querySelectorAll('.qa-card').forEach(c => c.classList.add('open')); }
-function collapseAll() { document.querySelectorAll('.qa-card').forEach(c => c.classList.remove('open')); }
+function expandAll() {
+  document.querySelectorAll('.topic-section').forEach(s => s.classList.remove('collapsed'));
+  document.querySelectorAll('.qa-card').forEach(c => c.classList.add('open'));
+}
+function collapseAll() {
+  document.querySelectorAll('.topic-section').forEach(s => s.classList.add('collapsed'));
+  document.querySelectorAll('.qa-card').forEach(c => c.classList.remove('open'));
+}
+
+// 侧边栏点击时展开对应 section
+document.getElementById('toc').addEventListener('click', (e) => {
+  const a = e.target.closest('a');
+  if (a) {
+    const id = a.getAttribute('href').substring(1);
+    const sec = document.getElementById(id);
+    if (sec) sec.classList.remove('collapsed');
+  }
+});
 </script>
 </body>
 </html>
