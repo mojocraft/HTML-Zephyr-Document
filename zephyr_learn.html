@@ -661,6 +661,61 @@
   .file-board { color: #059669; font-weight: 600; }      /* 随板名 — 绿色 */
   .file-ext   { color: #6b7280; }                        /* 扩展名 — 灰色 */
 
+  /* ── 深色模式覆盖：路径节点 ── */
+  [data-theme="dark"] .path-node.device { background: #1e1b4b; color: #a5b4fc; }
+  [data-theme="dark"] .path-node.binding { background: #2a1a08; color: #fde68a; }
+  [data-theme="dark"] .path-node.source { background: #0a1f1a; color: #6ee7b7; }
+
+  /* ── 深色模式覆盖 ── */
+  [data-theme="dark"] .callout.note  { background: #1e293b; border-color: #3b82f6; }
+  [data-theme="dark"] .callout.tip   { background: #1e293b; border-color: #10b981; }
+  [data-theme="dark"] .callout.warn  { background: #1e293b; border-color: #f59e0b; }
+
+  [data-theme="dark"] .layer-top { background: #2a1a0a; border-left-color: #f59e0b; }
+  [data-theme="dark"] .layer-mid { background: #0f1b2d; border-left-color: #3b82f6; }
+  [data-theme="dark"] .layer-bot { background: #0a1a14; border-left-color: #10b981; }
+  [data-theme="dark"] .layer .layer-desc { color: #94a3b8; }
+
+  [data-theme="dark"] .path-card-body { background: var(--surface); }
+  [data-theme="dark"] .path-card.simple .path-card-header { background: #0a2a1a; color: #6ee7b7; }
+  [data-theme="dark"] .path-card.complex .path-card-header { background: #0f1b2d; color: #93c5fd; }
+
+  [data-theme="dark"] .step-term-green { background: #0a2a1a; color: #6ee7b7; }
+  [data-theme="dark"] .step-term-blue  { background: #0f1b2d; color: #93c5fd; }
+
+  [data-theme="dark"] table.props thead { background: #1a2332; color: #94a3b8; }
+  [data-theme="dark"] table.props tbody tr:hover { background: #273548; }
+  [data-theme="dark"] table.props td { border-color: #334155; }
+  [data-theme="dark"] table.props th { border-color: #334155; }
+
+  [data-theme="dark"] .rule-box { background: linear-gradient(135deg, #0f1b2d 0%, #1a2332 100%); }
+  [data-theme="dark"] .rule-box .rule-title { color: #60a5fa; }
+
+  [data-theme="dark"] .path-card { border-color: #334155; }
+  [data-theme="dark"] .path-card-body { background: var(--surface); }
+
+  [data-theme="dark"] .code-annotated { background: var(--surface); border-color: #334155; }
+  [data-theme="dark"] .code-line-full { color: #94a3b8; }
+  [data-theme="dark"] .annot-blue  { background: #0f1b2d; border-color: #3730a3; color: #93c5fd; }
+  [data-theme="dark"] .annot-pink  { background: #1a0f1f; border-color: #9d174d; color: #f9a8d4; }
+  [data-theme="dark"] .annot-amber { background: #1a1508; border-color: #92400e; color: #fde68a; }
+
+  [data-theme="dark"] .method-card { border-color: #334155; background: var(--surface); }
+
+  [data-theme="dark"] .compare-grid { border-color: #334155; }
+  [data-theme="dark"] .compare-grid .cg-head { background: #1a2332; }
+  [data-theme="dark"] .compare-grid .cg-label { background: #1a2332; }
+  [data-theme="dark"] .compare-grid .cg-foot { background: #1a2332; }
+  [data-theme="dark"] .compare-grid > * { border-color: #334155; }
+
+  /* 深色模式下图标文字始终白色 */
+  [data-theme="dark"] main h2 .icon { color: #fff; }
+
+  [data-theme="dark"] pre { border-color: #334155; }
+  [data-theme="dark"] .layer-num { color: rgba(255,255,255,0.04); }
+  [data-theme="dark"] .layer-top { border-bottom-color: #f59e0b; }
+  [data-theme="dark"] .layer-mid { border-bottom-color: #3b82f6; }
+
   /* ── 规则框 ── */
   .rule-box {
     border: 2px solid var(--primary); border-radius: var(--radius);
