@@ -253,8 +253,11 @@
   .qa-card.open .q .arrow { transform: rotate(90deg); background: var(--primary-light); color: var(--primary); }
   .qa-card .a {
     display: none; padding: 4px 20px 18px 64px;
-    color: #374151; font-size: 0.93rem;
+    color: var(--text); font-size: 0.93rem;
     animation: fadeSlideIn 0.25s ease;
+  }
+  [data-theme="dark"] .qa-card .a {
+    color: #cbd5e1;
   }
   @keyframes fadeSlideIn {
     from { opacity: 0; transform: translateY(-6px); }
@@ -278,6 +281,9 @@
   :not(pre) > code {
     background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
     color: #c7254e;
+  }
+  [data-theme="dark"] :not(pre) > code {
+    color: #fda4af;
   }
 
   /* ── 标签 ── */
