@@ -1145,7 +1145,406 @@ target_sources(app PRIVATE src/main.c)</code></pre>
   <!-- ═══════════ GPIO ═══════════ -->
   <section class="topic-section topic-gpio" data-topic="gpio" id="sec-gpio">
     <h2><span class="icon icon-gpio">G</span> GPIO</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- GPIO-1: API 概述 -->
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">GPIO 的两种 API 风格：传统 API 与 DT 宏，应该用哪种？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Zephyr 3.7 LTS 推荐使用 DT 宏风格</strong>（函数名以 <code>_dt</code> 结尾），因为它在编译时就从设备树获取设备指针和引脚配置，运行时零开销。</p>
+
+          <div class="two-paths">
+            <div class="path-card" style="border-top:3px solid #ef4444;">
+              <div class="path-card-header">传统 API（不推荐）</div>
+              <div class="path-card-body">
+                <p style="font-size:0.82rem; color:var(--text-secondary);">需要手动传 <code>struct device *</code> 和 pin 号，容易出错：</p>
+                <pre><code>const struct device *dev = device_get_binding("GPIOA");
+gpio_pin_configure(dev, 5, GPIO_OUTPUT);
+gpio_pin_set(dev, 5, 1);</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">设备名硬编码，换了 SoC 或引脚就要改代码</p>
+              </div>
+            </div>
+            <div class="path-card" style="border-top:3px solid #10b981;">
+              <div class="path-card-header">DT 宏 API（推荐）</div>
+              <div class="path-card-body">
+                <p style="font-size:0.82rem;">从设备树自动获取，类型安全：</p>
+                <pre><code>/* 设备树 */
+led0: led_0 {
+    gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+};
+
+/* C 代码 */
+#define LED0_NODE DT_ALIAS(led0)
+static const struct gpio_dt_spec led =
+    GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+gpio_pin_configure_dt(&amp;led, GPIO_OUTPUT);
+gpio_pin_set_dt(&amp;led, 1);</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">引脚改了只改 DT 即可，C 代码不用动</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span><strong>规则：</strong>只要你的设备在设备树里用 <code>gpios</code> 属性描述，就用 <code>_dt</code> 系列 API。只有在极少数无法静态确定引脚的情况下才用传统 API。</span>
+          </div>
+
+          <div class="tags"><span class="tag">API</span><span class="tag">gpio_dt_spec</span><span class="tag">DT</span></div>
+        </div>
+      </div>
+
+      <!-- GPIO-2: 核心结构体与宏 -->
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">struct gpio_dt_spec 结构体是什么？GPIO_DT_SPEC_GET 宏做了什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong><code>struct gpio_dt_spec</code> 是把 GPIO 的三个要素打包成一个变量：</strong></p>
+          <pre><code>struct gpio_dt_spec {
+    const struct device *port;   /* 指向 GPIO 控制器（如 GPIOA） */
+    gpio_pin_t pin;              /* 引脚号                        */
+    gpio_dt_flags_t dt_flags;    /* 初始标志（上下拉、有效电平）    */
+};</code></pre>
+
+          <p><strong><code>GPIO_DT_SPEC_GET(node_id, prop)</code> 宏在编译时展开，从 DT 提取这三个值：</strong></p>
+          <pre><code>/* 设备树中的定义 */
+led0: led_0 {
+    gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+};
+
+/* GPIO_DT_SPEC_GET(led0, gpios) 编译后等价于 */
+static const struct gpio_dt_spec spec = {
+    .port     = DEVICE_DT_GET(DT_GPIO_CTLR(led0, gpios)),  /* → GPIOA  */
+    .pin      = DT_GPIO_PIN(led0, gpios),                  /* → 5      */
+    .dt_flags = DT_GPIO_FLAGS(led0, gpios),                 /* → ACTIVE_LOW */
+};</code></pre>
+
+          <p><strong>获取设备实例的常用写法：</strong></p>
+          <pre><code>/* 通过 DT 别名 */
+#define LED0_NODE DT_ALIAS(led0)
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+/* 通过 DT 路径 */
+static const struct gpio_dt_spec btn =
+    GPIO_DT_SPEC_GET(DT_PATH(buttons, button_0), gpios);
+
+/* 通过 DT 节点标签 */
+static const struct gpio_dt_spec sda =
+    GPIO_DT_SPEC_GET(DT_NODELABEL(i2c0_sda), gpios);</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>关键点：</strong>两个引脚就算都接在 GPIOA 上，也要各自声明一个 <code>struct gpio_dt_spec</code>。它不光记录"哪个口"，还记录了各自的 flags（上下拉、有效电平），这是编译时确定的。</span>
+          </div>
+
+          <div class="tags"><span class="tag">gpio_dt_spec</span><span class="tag">GPIO_DT_SPEC_GET</span><span class="tag">devicetree</span></div>
+        </div>
+      </div>
+
+      <!-- GPIO-3: 输出 / LED -->
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">GPIO 输出控制（LED 闪烁）的完整流程是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>完整流程 — 以 LED 为例：</strong></p>
+
+          <div class="layer-stack">
+            <div class="layer layer-top">
+              <span class="layer-num">1</span>
+              <div class="layer-label">设备树中定义 LED</div>
+              <div class="layer-desc">在你的 .overlay 或板级 dts 中声明</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">2</span>
+              <div class="layer-label">C 代码获取 gpio_dt_spec</div>
+              <div class="layer-desc"><code>GPIO_DT_SPEC_GET()</code> 从 DT 提取设备+引脚+标志</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">3</span>
+              <div class="layer-label">检查设备就绪</div>
+              <div class="layer-desc"><code>device_is_ready(spec.port)</code> — 确认 GPIO 控制器可用</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">4</span>
+              <div class="layer-label">配置为输出</div>
+              <div class="layer-desc"><code>gpio_pin_configure_dt(&amp;spec, GPIO_OUTPUT_ACTIVE)</code></div>
+            </div>
+            <div class="layer layer-bot">
+              <span class="layer-num">5</span>
+              <div class="layer-label">控制输出电平</div>
+              <div class="layer-desc"><code>gpio_pin_set_dt(&amp;spec, 1)</code> / <code>gpio_pin_toggle_dt(&amp;spec)</code></div>
+            </div>
+          </div>
+
+          <p><strong>完整代码：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/gpio.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+/* 设备树 — 放在 .overlay 或 board .dts 中 */
+/ {
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+            label = "User LED";
+        };
+    };
+};
+
+/* C 代码 */
+#define LED0_NODE DT_ALIAS(led0)
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+void main(void)
+{
+    if (!device_is_ready(led.port)) {
+        return;  /* GPIO 控制器不可用 */
+    }
+
+    gpio_pin_configure_dt(&amp;led, GPIO_OUTPUT_ACTIVE);
+
+    while (1) {
+        gpio_pin_toggle_dt(&amp;led);    /* 翻转电平 */
+        k_msleep(500);
+    }
+}</code></pre>
+
+          <p><strong>输出控制 API 对照：</strong></p>
+          <table class="props">
+            <thead><tr><th>函数</th><th>作用</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td><code>gpio_pin_set_dt(&amp;spec, 1)</code></td><td>设置为逻辑"激活"</td><td>若 <code>ACTIVE_LOW</code> 则实际输出低电平</td></tr>
+              <tr><td><code>gpio_pin_set_dt(&amp;spec, 0)</code></td><td>设置为逻辑"非激活"</td><td>若 <code>ACTIVE_LOW</code> 则实际输出高电平</td></tr>
+              <tr><td><code>gpio_pin_toggle_dt(&amp;spec)</code></td><td>翻转逻辑电平</td><td>最常见于 LED 闪烁</td></tr>
+              <tr><td><code>gpio_pin_set_raw(&amp;spec.port, spec.pin, 1)</code></td><td>直接设置物理电平</td><td>忽略 flags 中 ACTIVE_LOW，直接操作物理电平</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>gpio_pin_configure_dt 的输出模式：</strong></p>
+          <pre><code>GPIO_OUTPUT             /* 输出模式，不指定初始电平    */
+GPIO_OUTPUT_INACTIVE    /* 输出模式，初始为"非激活"状态 */
+GPIO_OUTPUT_ACTIVE      /* 输出模式，初始为"激活"状态   */
+GPIO_OUTPUT_LOW         /* 输出模式，初始物理低电平      */
+GPIO_OUTPUT_HIGH        /* 输出模式，初始物理高电平      */</code></pre>
+
+          <div class="tags"><span class="tag">LED</span><span class="tag">输出</span><span class="tag">gpio_pin_set_dt</span><span class="tag">gpio_pin_toggle_dt</span></div>
+        </div>
+      </div>
+
+      <!-- GPIO-4: 输入 / 中断 -->
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">GPIO 输入和中断（按键检测）是怎样使用的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>两种方式检测按键：轮询和中断。</strong></p>
+
+          <p><strong>方式一：轮询（简单场景）</strong></p>
+          <pre><code>static const struct gpio_dt_spec button =
+    GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+
+void main(void)
+{
+    gpio_pin_configure_dt(&amp;button, GPIO_INPUT);
+    while (1) {
+        bool pressed = gpio_pin_get_dt(&amp;button);
+        if (pressed) {
+            /* 按键按下 */
+        }
+        k_msleep(50);  /* 消抖 */
+    }
+}</code></pre>
+
+          <p><strong>方式二：中断回调（推荐）</strong></p>
+          <pre><code>static const struct gpio_dt_spec button =
+    GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+
+static struct gpio_callback button_cb_data;
+
+void button_pressed(const struct device *dev,
+                    struct gpio_callback *cb,
+                    uint32_t pins)
+{
+    printk("Button pressed! (pin mask: 0x%x)\n", pins);
+}
+
+void main(void)
+{
+    /* 1. 配置为输入 + 使能中断 */
+    gpio_pin_configure_dt(&amp;button, GPIO_INPUT);
+
+    gpio_pin_interrupt_configure_dt(&amp;button,
+        GPIO_INT_EDGE_TO_ACTIVE); /* 按下沿触发 */
+
+    /* 2. 初始化回调 */
+    gpio_init_callback(&amp;button_cb_data, button_pressed,
+                       BIT(button.pin));
+
+    /* 3. 注册回调到 GPIO 控制器 */
+    gpio_add_callback(button.port, &amp;button_cb_data);
+
+    while (1) {
+        k_msleep(1000);  /* 主循环可以做别的事 */
+    }
+}</code></pre>
+
+          <p><strong>中断触发类型速查：</strong></p>
+          <table class="props">
+            <thead><tr><th>宏</th><th>触发条件</th><th>适用场景</th></tr></thead>
+            <tbody>
+              <tr><td><code>GPIO_INT_EDGE_FALLING</code></td><td>下降沿（高→低）</td><td>按下触发</td></tr>
+              <tr><td><code>GPIO_INT_EDGE_RISING</code></td><td>上升沿（低→高）</td><td>松开触发</td></tr>
+              <tr><td><code>GPIO_INT_EDGE_BOTH</code></td><td>任意边沿</td><td>按下和松开都触发</td></tr>
+              <tr><td><code>GPIO_INT_EDGE_TO_ACTIVE</code></td><td>到"激活"状态的边沿</td><td>自动适配 ACTIVE_LOW</td></tr>
+              <tr><td><code>GPIO_INT_EDGE_TO_INACTIVE</code></td><td>到"非激活"状态的边沿</td><td>自动适配 ACTIVE_LOW</td></tr>
+              <tr><td><code>GPIO_INT_LEVEL_LOW</code></td><td>低电平持续</td><td>需手动确认后再关闭</td></tr>
+              <tr><td><code>GPIO_INT_LEVEL_HIGH</code></td><td>高电平持续</td><td>需手动确认后再关闭</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout warn">
+            <span class="callout-icon">&#9888;&#65039;</span>
+            <span><strong>注意：</strong>中断回调在<strong>中断上下文</strong>中执行，不能做耗时操作（如 <code>k_sleep</code>、<code>printk</code> 大段输出）。耗时处理应放到工作队列中。</span>
+          </div>
+
+          <p><strong>带消抖的按键中断：</strong></p>
+          <pre><code>#define DEBOUNCE_MS 30
+
+static struct gpio_callback btn_cb;
+static struct k_work_delayable btn_work;
+
+void btn_work_handler(struct k_work *work)
+{
+    int state = gpio_pin_get_dt(&amp;button);
+    if (state) {
+        /* 确认按键真的按下了 */
+    }
+}
+
+void btn_isr(const struct device *dev,
+             struct gpio_callback *cb, uint32_t pins)
+{
+    /* 中断里只提交延迟工作 */
+    k_work_schedule(&amp;btn_work, K_MSEC(DEBOUNCE_MS));
+}</code></pre>
+
+          <div class="tags"><span class="tag">中断</span><span class="tag">按键</span><span class="tag">输入</span><span class="tag">callback</span><span class="tag">消抖</span></div>
+        </div>
+      </div>
+
+      <!-- GPIO-5: flags 速查 -->
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-5">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">GPIO 的 flags 有哪些？分别代表什么含义？如何使用？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p>所有 GPIO flags 在 <code>zephyr/include/zephyr/dt-bindings/gpio/gpio.h</code> 中定义。它们可以位或组合，可以用在<strong>设备树 <code>gpios</code> 属性</strong>中，也可以用在<strong>C 代码 <code>gpio_pin_configure_dt()</code></strong> 中。</p>
+
+          <table class="props">
+            <thead><tr><th>分类</th><th>宏</th><th>值</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td rowspan="2">有效电平</td><td><code>GPIO_ACTIVE_HIGH</code></td><td>0</td><td>高电平 = 逻辑"激活"</td></tr>
+              <tr><td><code>GPIO_ACTIVE_LOW</code></td><td>1</td><td>低电平 = 逻辑"激活"</td></tr>
+              <tr><td rowspan="2">上下拉</td><td><code>GPIO_PULL_UP</code></td><td>2</td><td>内部上拉</td></tr>
+              <tr><td><code>GPIO_PULL_DOWN</code></td><td>4</td><td>内部下拉</td></tr>
+              <tr><td rowspan="2">输出模式</td><td><code>GPIO_OPEN_DRAIN</code></td><td>8</td><td>开漏输出</td></tr>
+              <tr><td><code>GPIO_OPEN_SOURCE</code></td><td>16</td><td>开源输出</td></tr>
+              <tr><td rowspan="2">单/双向</td><td><code>GPIO_INPUT</code></td><td></td><td>输入模式</td></tr>
+              <tr><td><code>GPIO_OUTPUT*</code></td><td></td><td>输出模式</td></tr>
+              <tr><td rowspan="3">中断触发</td><td><code>GPIO_INT_EDGE_RISING</code></td><td>2&lt;&lt;12</td><td>上升沿中断</td></tr>
+              <tr><td><code>GPIO_INT_EDGE_FALLING</code></td><td>3&lt;&lt;12</td><td>下降沿中断</td></tr>
+              <tr><td><code>GPIO_INT_EDGE_BOTH</code></td><td>5&lt;&lt;12</td><td>双沿中断</td></tr>
+              <tr><td></td><td><code>GPIO_INT_DEBOUNCE</code></td><td>7&lt;&lt;12</td><td>启用消抖</td></tr>
+              <tr><td rowspan="2">逻辑电压</td><td><code>GPIO_VOLTAGE_1P8</code></td><td></td><td>1.8V 逻辑</td></tr>
+              <tr><td><code>GPIO_VOLTAGE_3P3</code></td><td></td><td>3.3V 逻辑</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>使用位置一：设备树中</strong></p>
+          <pre><code>/* 在 DT 中组合使用，位或连接 */
+button0 {
+    gpios = &lt;&amp;gpioc 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)&gt;;
+};</code></pre>
+
+          <p><strong>使用位置二：C 代码中</strong></p>
+          <pre><code>/* 配置函数可以追加 flags */
+gpio_pin_configure_dt(&amp;spec, GPIO_OUTPUT | GPIO_OPEN_DRAIN);
+
+/* 注意：dt_flags 里的初始标志在 GPIO_DT_SPEC_GET 时已自动合并，
+   不需要在 configure 时重复指定 ACTIVE_LOW / PULL_UP */</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>平台差异：</strong><code>GPIO_OPEN_SOURCE</code> 和 <code>GPIO_VOLTAGE_*</code> 仅在部分芯片上支持。不支持的平台会忽略这些 flag 或返回 <code>-ENOTSUP</code>。</span>
+          </div>
+
+          <div class="tags"><span class="tag">flags</span><span class="tag">PULL_UP</span><span class="tag">ACTIVE_LOW</span><span class="tag">OPEN_DRAIN</span></div>
+        </div>
+      </div>
+
+      <!-- GPIO-6: 平台差异 -->
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-6">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">STM32 和 ESP32 在 GPIO 使用上有什么需要注意的差异？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <table class="props">
+            <thead><tr><th style="width:25%;">对比项</th><th style="width:35%;">STM32</th><th style="width:35%;">ESP32 (S3)</th></tr></thead>
+            <tbody>
+              <tr><td><strong>引脚编号</strong></td><td>端口 + 引脚：<code>GPIOA</code> 的 pin 5 = <code>&lt;&amp;gpioa 5&gt;</code></td><td>全局编号：<code>&lt;&amp;gpio0 43&gt;</code>，GPIO0 掌管全部引脚</td></tr>
+              <tr><td><strong>引脚范围</strong></td><td>每端口 0-15，共 PA-PH 等多个端口</td><td>通常 0-48（视芯片），只有一个 GPIO0 控制器</td></tr>
+              <tr><td><strong>pinctrl</strong></td><td>必须显式配置 AF 寄存器</td><td>GPIO Matrix 自动路由，基本不需要手动 pinctrl</td></tr>
+              <tr><td><strong>输出速度</strong></td><td>通常更快，支持 <code>drive-strength</code></td><td>由 GPIO Matrix 引入轻微延迟</td></tr>
+              <tr><td><strong>中断支持</strong></td><td>EXTI 线，每端口最多 16 条</td><td>每个 GPIO 都可独立中断</td></tr>
+              <tr><td><strong>中断处理</strong></td><td>多引脚可能共享一条中断线</td><td>每个引脚独立中断向量</td></tr>
+              <tr><td><strong>init 优先级</strong></td><td>POST_KERNEL 80</td><td>PRE_KERNEL_1 50</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>STM32 DT 写法：</strong></p>
+          <pre><code>&amp;gpioa {
+    status = "okay";
+};
+
+led0 {
+    gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+};</code></pre>
+
+          <p><strong>ESP32-S3 DT 写法：</strong></p>
+          <pre><code>&amp;gpio0 {
+    status = "okay";
+};
+
+led0 {
+    gpios = &lt;&amp;gpio0 38 GPIO_ACTIVE_LOW&gt;;   /* 38 = 物理 GPIO38 */
+};</code></pre>
+
+          <div class="callout warn">
+            <span class="callout-icon">&#9888;&#65039;</span>
+            <span><strong>ESP32 常见坑：</strong>某些 GPIO 在启动时被 BootROM 或二级 bootloader 占用（如 GPIO12 影响 flash 电压、GPIO34-39 仅输入）。用之前一定查你芯片的 datasheet。</span>
+          </div>
+
+          <div class="tags"><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">平台差异</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ CAN ═══════════ -->
