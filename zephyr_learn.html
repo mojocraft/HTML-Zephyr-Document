@@ -889,15 +889,15 @@ solomon → Solomon Systech</code></pre>
 ├── &lt;board&gt;.dts          # 板级设备树（LED/按键/传感器挂在哪）
 ├── &lt;board&gt;.yaml         # 板级绑定（支持的连接器/外设）
 ├── &lt;board&gt;_defconfig    # Kconfig 默认配置（选芯片型号 + 启用驱动）
-├── Kconfig.board         # 声明 BOARD_MYBOARD 符号
-├── Kconfig.defconfig     # Kconfig 默认值的来源声明
+├── Kconfig.&lt;board&gt;      # 声明 BOARD_XXX 符号（文件名随板名变）
+├── Kconfig.defconfig     # Kconfig 默认值的来源声明（固定文件名）
 └── (可选) pre_dt_board.cmake  # 设备树预处理</code></pre>
 
           <div class="method-cards">
             <div class="method-card">
-              <div class="method-card-header">&#128196; Kconfig.board</div>
+              <div class="method-card-header">&#128196; Kconfig.&lt;board&gt;</div>
               <div class="method-card-body">
-                <p><strong>声明板子存在</strong>，让 <code>-b myboard</code> 能识别：</p>
+                <p><strong>声明板子存在</strong>，让 <code>-b myboard</code> 能识别。文件名随板名变，如 <code>Kconfig.fc_ddriver</code>：</p>
                 <pre><code>config BOARD_MYBOARD
     bool "My Board"
     depends on SOC_STM32F407XE</code></pre>
@@ -974,7 +974,7 @@ CONFIG_I2C=y</code></pre>
           <pre><code>boards/&lt;vendor&gt;/esp32s3_myboard/
 ├── board.cmake              # 公共编译配置
 ├── board.yml
-├── Kconfig.board
+├── Kconfig.&lt;board&gt;
 ├── Kconfig.defconfig
 │
 ├── esp32s3_myboard_procpu/          ← PROCORE (CPU0)
@@ -1020,7 +1020,7 @@ ls zephyr/boards/st/nucleo_f407zg/
 cp -r zephyr/boards/st/nucleo_f407zg/ boards/&lt;your-vendor&gt;/myboard/
 
 # 然后逐一改：
-#   Kconfig.board → BOARD_MYBOARD, depends on SOC_XXX
+#   Kconfig.<board> → 内容: BOARD_MYBOARD, depends on SOC_XXX
 #   myboard_defconfig → 改成你的 SoC 型号和需要的驱动
 #   myboard.dts → 改 #include 的 dtsi，改 chosen，加你的外设
 #   myboard.yaml → 改 identifier
@@ -1087,34 +1087,47 @@ target_sources(app PRIVATE src/main.c)</code></pre>
       </div>
 
 
-      <!-- Q10: Kconfig.board 命名规则 -->
+      <!-- Q10: Kconfig 命名规则已修正 -->
       <div class="qa-card" data-topics="fundamentals board" id="qa-fund-10">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
-          <span class="text">板级文件中，Kconfig.board 是否需要改成 Kconfig.&lt;board&gt; 这样以板名命名？</span>
+          <span class="text">板级文件中哪些文件名固定、哪些随板名变化？</span>
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>不需要。<code>Kconfig.board</code> 是固定文件名。</strong>板级文件的命名分两类：</p>
+          <p><strong>实际命名规则——以官方 stm32f429i_disc1 和你的 fc_ddriver 为例：</strong></p>
 
           <table class="props">
-            <thead><tr><th>固定文件名（Zephyr 按固定名搜索）</th><th>用板子名（随板名变化）</th></tr></thead>
+            <thead><tr><th>固定文件名</th><th>随板名变化</th></tr></thead>
             <tbody>
-              <tr><td><code>Kconfig.board</code></td><td><code>&lt;board&gt;.dts</code> &mdash; 如 <code>fc_ddriver.dts</code></td></tr>
-              <tr><td><code>Kconfig.defconfig</code></td><td><code>&lt;board&gt;.yaml</code> &mdash; 如 <code>fc_ddriver.yaml</code></td></tr>
-              <tr><td><code>board.cmake</code></td><td><code>&lt;board&gt;_defconfig</code> &mdash; 如 <code>fc_ddriver_defconfig</code></td></tr>
-              <tr><td><code>board.yml</code></td><td></td></tr>
+              <tr><td><code>board.cmake</code></td><td><code>&lt;board&gt;.dts</code> &mdash; 如 <code>fc_ddriver.dts</code></td></tr>
+              <tr><td><code>board.yml</code></td><td><code>&lt;board&gt;.yaml</code> &mdash; 如 <code>stm32f429i_disc1.yaml</code></td></tr>
+              <tr><td><code>Kconfig.defconfig</code></td><td><code>&lt;board&gt;_defconfig</code> &mdash; 如 <code>fc_ddriver_defconfig</code></td></tr>
+              <tr><td></td><td><code>Kconfig.&lt;board&gt;</code> &mdash; 如 <code>Kconfig.fc_ddriver</code></td></tr>
             </tbody>
           </table>
 
-          <p><strong><code>Kconfig.board</code> 文件名固定，但内容里用板名：</strong></p>
-          <pre><code># 文件名叫 Kconfig.board（固定，不改名）
-# 里面的 config 符号才用板子名
-config BOARD_FC_DDRIVER       # ← 这里用板名
-    bool "FC DDriver Board"
-    depends on SOC_STM32F429XI</code></pre>
+          <p><strong>实际目录示例：</strong></p>
+          <pre><code># 你的 fc_ddriver 工程
+ls fc_ddriver/boards/arm/fc_ddriver/
+# → board.cmake          ← 固定名
+# → board.yml            ← 固定名
+# → Kconfig.defconfig    ← 固定名
+# → Kconfig.fc_ddriver   ← 随板名
+# → fc_driver.dts        ← 随板名
+# → fc_driver_defconfig  ← 随板名
 
-          <p>原因：Zephyr 的 Kconfig 系统按固定文件名 <code>Kconfig.board</code> 去搜索每个板子目录，不管你板子叫什么名字。Zephyr 源码里几百个板子，每个都是 <code>Kconfig.board</code>。</p>
+# 官方 STM32F429I-DISC1
+ls zephyr/boards/st/stm32f429i_disc1/
+# → board.cmake                   ← 固定名
+# → board.yml                     ← 固定名
+# → Kconfig.defconfig            ← 固定名
+# → Kconfig.stm32f429i_disc1     ← 随板名
+# → stm32f429i_disc1.dts         ← 随板名
+# → stm32f429i_disc1_defconfig   ← 随板名
+# → stm32f429i_disc1.yaml        ← 随板名</code></pre>
+
+          <p><strong>（之前说 Kconfig.board 是固定名→错误，感谢纠正。）</strong></p>
 
           <div class="tags"><span class="tag">board</span><span class="tag">Kconfig</span><span class="tag">naming</span></div>
         </div>
