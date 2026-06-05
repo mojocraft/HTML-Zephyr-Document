@@ -884,11 +884,11 @@ solomon → Solomon Systech</code></pre>
 
           <p><strong>单核板子（STM32）完整目录结构：</strong></p>
           <pre><code>boards/&lt;vendor&gt;/&lt;board&gt;/
-├── board.cmake           # 告诉 CMake 用什么芯片、需要哪些模块
+├── board.cmake           # 烧录/调试工具配置（runner：OpenOCD/JLink/pyOCD）
 ├── board.yml             # 板子元数据（名称、厂商、SoC）
 ├── &lt;board&gt;.dts          # 板级设备树（LED/按键/传感器挂在哪）
 ├── &lt;board&gt;.yaml         # 板级绑定（支持的连接器/外设）
-├── &lt;board&gt;_defconfig    # Kconfig 默认配置（内核、驱动开关）
+├── &lt;board&gt;_defconfig    # Kconfig 默认配置（选芯片型号 + 启用驱动）
 ├── Kconfig.board         # 声明 BOARD_MYBOARD 符号
 ├── Kconfig.defconfig     # Kconfig 默认值的来源声明
 └── (可选) pre_dt_board.cmake  # 设备树预处理</code></pre>
@@ -916,9 +916,14 @@ endif</code></pre>
             <div class="method-card">
               <div class="method-card-header">&#128196; board.cmake</div>
               <div class="method-card-body">
-                <p><strong>编译/烧录参数</strong>：Flash 大小、调试器、OpenOCD 配置等。</p>
-                <pre><code>board_set_flash_target_ifdblock_size(0x40000)
-include(.../openocd.board.cmake)</code></pre>
+                <p><strong>烧录/调试工具（runner）配置</strong>，不管芯片选型：</p>
+                <pre><code>board_runner_args(openocd
+  "--cmd-pre-init" "source [find ...]")
+board_runner_args(jlink
+  "--device=STM32F429IG" ...)
+include(.../openocd.board.cmake)
+include(.../jlink.board.cmake)</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">芯片型号实际由 <code>_defconfig</code> 中 <code>CONFIG_SOC_XXX=y</code> 决定</p>
               </div>
             </div>
           </div>
