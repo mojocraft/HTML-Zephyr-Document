@@ -1712,9 +1712,10 @@ CONFIG_GPIO=y  ─────→  CONFIG_GPIO_STM32=y  (SOC_FAMILY_STM32 为真
 CONFIG_GPIO=y</code></pre>
 
           <p><strong>设备树中定义继电器节点：</strong></p>
-          <pre><code>/ {
+          <pre><code>/* 继电器 = GPIO 输出设备，和 LED 用法一致，复用 gpio-leds */
+/ {
     relays {
-        compatible = "gpio-relays";   /* 或自定义 compatible */
+        compatible = "gpio-leds";     /* Zephyr 没有 gpio-relays，用 gpio-leds */
         relay0: relay_0 {
             gpios = &lt;&amp;gpiob 12 GPIO_ACTIVE_HIGH&gt;;
             label = "Relay 0";
