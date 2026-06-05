@@ -613,6 +613,40 @@
     background: #fafbfc; font-size: 0.8rem; color: var(--text-secondary);
   }
 
+  /* ── DT vs YAML 对照布局 ── */
+  .dt-yaml-pair {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px; align-items: start;
+    margin: 10px 0;
+  }
+  @media (max-width: 800px) {
+    .dt-yaml-pair { grid-template-columns: 1fr; }
+    .dt-yaml-arrow { transform: rotate(90deg); }
+  }
+  .dt-yaml-col {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .dt-yaml-col pre {
+    border: none; margin: 0; border-radius: 0;
+    background: var(--code-bg);
+  }
+  .dt-yaml-header {
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 14px;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .dt-yaml-arrow {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: var(--primary);
+    padding-top: 28px;
+  }
+
   /* ── 代码注解图 ── */
   .code-annotated {
     margin: 14px 0;
@@ -749,6 +783,8 @@
   [data-theme="dark"] .layer-num { color: rgba(255,255,255,0.04); }
   [data-theme="dark"] .layer-top { border-bottom-color: #f59e0b; }
   [data-theme="dark"] .layer-mid { border-bottom-color: #3b82f6; }
+  [data-theme="dark"] .dt-yaml-col { border-color: #334155; background: var(--surface); }
+  [data-theme="dark"] .dt-yaml-header { border-color: #334155; }
 
   /* ── 规则框 ── */
   .rule-box {
@@ -1502,6 +1538,125 @@ target_sources(app PRIVATE src/main.c)</code></pre>
 <span class="file-ext"># →</span> <span class="file-board">stm32f429i_disc1.yaml</span>          <span class="file-ext">← 随板名</span></code></pre>
 
           <div class="tags"><span class="tag">board</span><span class="tag">Kconfig</span><span class="tag">naming</span></div>
+        </div>
+      </div>
+
+      <!-- Q11: DT vs YAML 对照 -->
+      <div class="qa-card" data-topics="fundamentals devicetree" id="qa-fund-11">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">设备树的写法和对应的 YAML 绑定文件长什么样？如何对照阅读？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p>每一个 <code>compatible</code> 背后都有一份 YAML 绑定。下面用三组对照帮你建立直觉：</p>
+
+          <!-- 对照1: GPIO LED -->
+          <p style="margin-top:16px;"><strong>对照一：GPIO LED</strong></p>
+          <div class="dt-yaml-pair">
+            <div class="dt-yaml-col">
+              <div class="dt-yaml-header">设备树中写的</div>
+              <pre><code>/ {
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+            label = "User LED";
+        };
+    };
+};</code></pre>
+            </div>
+            <div class="dt-yaml-arrow">&#8594;</div>
+            <div class="dt-yaml-col">
+              <div class="dt-yaml-header">gpio-leds.yaml 绑定定义的</div>
+              <pre><code>compatible: "gpio-leds"
+include: [base.yaml]
+
+child-binding:
+  description: GPIO LED child
+  properties:
+    gpios:
+      type: phandle-array
+      required: true
+    label:
+      type: string
+      required: false</code></pre>
+            </div>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);">每项属性都能在 YAML 的 <code>properties</code> 中找到对应声明。<code>required: true</code> 意味着不写就编译报错。</p>
+
+          <!-- 对照2: I2C 传感器 -->
+          <p style="margin-top:18px;"><strong>对照二：I&sup2;C 温度传感器</strong></p>
+          <div class="dt-yaml-pair">
+            <div class="dt-yaml-col">
+              <div class="dt-yaml-header">设备树中写的</div>
+              <pre><code>&amp;i2c1 {
+    tmp108@48 {
+        compatible = "ti,tmp108";
+        reg = &lt;0x48&gt;;
+        label = "TEMP";
+    };
+};</code></pre>
+            </div>
+            <div class="dt-yaml-arrow">&#8594;</div>
+            <div class="dt-yaml-col">
+              <div class="dt-yaml-header">ti,tmp108.yaml 绑定定义的</div>
+              <pre><code>compatible: "ti,tmp108"
+include:
+  - [sensor-device.yaml]
+  - [i2c-device.yaml]  ← reg 从此来
+
+properties:
+  label:
+    type: string
+    required: false</code></pre>
+            </div>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);"><code>reg</code> 没在 tmp108 自己的 properties 里？它是从 <code>i2c-device.yaml</code> 继承来的。<strong>属性的来源链条就是 include。</strong></p>
+
+          <!-- 对照3: STM32 UART pinctrl -->
+          <p style="margin-top:18px;"><strong>对照三：STM32 UART 引脚配置</strong></p>
+          <div class="dt-yaml-pair">
+            <div class="dt-yaml-col">
+              <div class="dt-yaml-header">设备树中写的</div>
+              <pre><code>&amp;usart3 {
+    pinctrl-0 = &lt;&amp;usart3_tx_pc10
+                 &amp;usart3_rx_pc11&gt;;
+    pinctrl-names = "default";
+};
+
+&amp;pinctrl {
+    usart3_tx_pc10: usart3_tx_pc10 {
+        pinmux = &lt;STM32_PINMUX('C',10,AF7)&gt;;
+    };
+};</code></pre>
+            </div>
+            <div class="dt-yaml-arrow">&#8594;</div>
+            <div class="dt-yaml-col">
+              <div class="dt-yaml-header">pinctrl 绑定定义的</div>
+              <pre><code># st,stm32-pinctrl.yaml
+compatible: "st,stm32-pinctrl"
+
+properties:
+  pinmux:
+    type: array
+    required: true
+    description: |
+      STM32_PINMUX(port, pin, af)</code></pre>
+            </div>
+          </div>
+
+          <div class="rule-box" style="margin-top:18px;">
+            <div class="rule-title">对照阅读法则</div>
+            <ul>
+              <li>DT 中的属性名 → 在 YAML <code>properties:</code> 下找声明</li>
+              <li>YAML 中 <code>required: true</code> → DT 中必须写</li>
+              <li>DT 中的属性没在直接 YAML 里？→ 追 <code>include:</code> 链向上找父级</li>
+              <li>属性值的格式（几个 cell、什么类型）→ 看 <code>type:</code> + 父节点的 <code>#address-cells</code></li>
+            </ul>
+          </div>
+
+          <div class="tags"><span class="tag">devicetree</span><span class="tag">YAML</span><span class="tag">binding</span><span class="tag">对照</span></div>
         </div>
       </div>
 
