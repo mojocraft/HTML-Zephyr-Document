@@ -1035,6 +1035,57 @@ cp -r zephyr/boards/st/nucleo_f407zg/ boards/&lt;your-vendor&gt;/myboard/
         </div>
       </div>
 
+
+      <!-- Q9: 自定义板子后是否需要配置CMakeLists.txt -->
+      <div class="qa-card" data-topics="fundamentals board build" id="qa-fund-9">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">定义了板级文件后直接 west build 就行吗？需要在工程根 CMakeLists.txt 中指定什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>分两种情况：</strong></p>
+
+          <table class="props">
+            <thead><tr><th>板子位置</th><th>需要额外配置？</th><th>编译命令</th></tr></thead>
+            <tbody>
+              <tr><td>放在 Zephyr 源码 <code>zephyr/boards/</code> 下</td><td>不需要，自动发现</td><td><code>west build -b myboard .</code></td></tr>
+              <tr><td>放在你自己工程 <code>boards/</code> 下 (out-of-tree)</td><td>需要 — 加一行 <code>BOARD_ROOT</code></td><td><code>west build -b myboard .</code></td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>Out-of-tree 板子的正确做法（工程根 CMakeLists.txt）：</strong></p>
+          <pre><code>cmake_minimum_required(VERSION 3.20.0)
+
+# 关键：在 find_package 之前加这一行
+list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(my_app)
+
+target_sources(app PRIVATE src/main.c)</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">规则</div>
+            <ul>
+              <li><code>list(APPEND BOARD_ROOT ...)</code> 必须在 <code>find_package(Zephyr ...)</code> <strong>之前</strong></li>
+              <li>你的 <code>boards/&lt;vendor&gt;/&lt;board&gt;/</code> 目录结构必须遵循 Zephyr 约定</li>
+              <li>如果你的板子名和 Zephyr 内置的重名，你的优先级更高（会覆盖内置的）</li>
+            </ul>
+          </div>
+
+          <p><strong>也可以在命令行指定（不推荐，容易忘）：</strong></p>
+          <pre><code>west build -b myboard . --board-root .</code></pre>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span>推荐把 <code>BOARD_ROOT</code> 写在 CMakeLists.txt 里，一劳永逸。你的 <code>fc_ddriver</code> 工程就是这么做的——第 4 行 <code>list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR})</code> 在 <code>find_package</code> 之前。</span>
+          </div>
+
+          <div class="tags"><span class="tag">board</span><span class="tag">CMake</span><span class="tag">BOARD_ROOT</span><span class="tag">west</span><span class="tag">build</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
