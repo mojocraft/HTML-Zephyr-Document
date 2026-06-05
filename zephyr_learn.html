@@ -1063,7 +1063,7 @@ cp -r zephyr/boards/st/nucleo_f407zg/ boards/&lt;your-vendor&gt;/myboard/
           <p><strong>Out-of-tree 板子的正确做法（工程根 CMakeLists.txt）：</strong></p>
           <pre><code>cmake_minimum_required(VERSION 3.20.0)
 
-# 关键：在 find_package 之前加这一行
+# 关键：APPEND = 追加到已有列表，不覆盖 Zephyr 内置路径
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
@@ -1075,6 +1075,8 @@ target_sources(app PRIVATE src/main.c)</code></pre>
             <div class="rule-title">规则</div>
             <ul>
               <li><code>list(APPEND BOARD_ROOT ...)</code> 必须在 <code>find_package(Zephyr ...)</code> <strong>之前</strong></li>
+              <li><code>APPEND</code> 是 CMake <code>list()</code> 的子命令，意思是<strong>追加到列表末尾</strong>。你不能用 <code>set(BOARD_ROOT ...)</code>，那会覆盖整个列表，导致 Zephyr 自带的板子全部丢失</li>
+              <li><code>BOARD_ROOT</code> 是一个 CMake 列表变量，Zephyr 内置路径已经存在其中，你的路径只是追加进去</li>
               <li>你的 <code>boards/&lt;vendor&gt;/&lt;board&gt;/</code> 目录结构必须遵循 Zephyr 约定</li>
               <li>如果你的板子名和 Zephyr 内置的重名，你的优先级更高（会覆盖内置的）</li>
             </ul>
