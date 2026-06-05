@@ -1660,6 +1660,89 @@ properties:
         </div>
       </div>
 
+      <!-- Q12: 如何找到正确的Kconfig配置名 -->
+      <div class="qa-card" data-topics="fundamentals kconfig build" id="qa-fund-12">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">使用外设时，prj.conf 中的 CONFIG_XXX 配置名应该去哪里找？怎么写？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>三种方法，从快到慢：</strong></p>
+
+          <div class="method-cards">
+            <div class="method-card">
+              <div class="method-card-header">&#128269; 方法一：menuconfig <span class="speed-tag speed-fast">最快</span></div>
+              <div class="method-card-body">
+                <p><code>west build -b &lt;board&gt; . -t menuconfig</code></p>
+                <p>按 <code>/</code> 搜索关键词，按 <code>?</code> 看帮助和依赖链。按 <code>Shift+/</code> 反向追踪"这个选项为什么被选中？"</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128451;&#65039; 方法二：搜 Kconfig 文件</div>
+              <div class="method-card-body">
+                <p>每个驱动目录下都有 Kconfig 文件：</p>
+                <pre><code>cat zephyr/drivers/gpio/Kconfig.stm32
+# config GPIO_STM32
+#   select GPIO</code></pre>
+                <p>看到 <code>select GPIO</code> 意味着只需写 <code>CONFIG_GPIO_STM32=y</code>，GPIO 自动打开</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128736;&#65039; 方法三：看 samples</div>
+              <div class="method-card-body">
+                <p>找到最接近的官方示例，看它的 <code>prj.conf</code> 写了什么：</p>
+                <pre><code>ls zephyr/samples/drivers/gpio/
+cat .../prj.conf
+# CONFIG_GPIO=y</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>关键概念：Kconfig 依赖链（select）</strong></p>
+          <p>大多数情况下你<strong>不需要手动写底层驱动配置</strong>：</p>
+          <pre><code>你在 prj.conf 中写：     Zephyr 自动选中：
+CONFIG_GPIO=y  ─────→  CONFIG_GPIO_STM32=y  (SOC_FAMILY_STM32 为真)
+                   └──→  CONFIG_GPIO_INIT_PRIORITY=...</code></pre>
+
+          <p><strong>实操：继电器需要什么配置？</strong></p>
+          <p>继电器就是 GPIO 输出——拉高吸合、拉低断开。<strong>只需要 <code>CONFIG_GPIO=y</code></strong>，STM32 的 <code>CONFIG_GPIO_STM32=y</code> 由 <code>select</code> 链自动打开，不需要手写。</p>
+
+          <pre><code># prj.conf — 最简配置
+CONFIG_GPIO=y</code></pre>
+
+          <p><strong>设备树中定义继电器节点：</strong></p>
+          <pre><code>/ {
+    relays {
+        compatible = "gpio-relays";   /* 或自定义 compatible */
+        relay0: relay_0 {
+            gpios = &lt;&amp;gpiob 12 GPIO_ACTIVE_HIGH&gt;;
+            label = "Relay 0";
+        };
+    };
+};</code></pre>
+
+          <p><strong>C 代码：</strong></p>
+          <pre><code>#define RELAY0 DT_ALIAS(relay0)
+static const struct gpio_dt_spec relay = GPIO_DT_SPEC_GET(RELAY0, gpios);
+gpio_pin_configure_dt(&amp;relay, GPIO_OUTPUT_INACTIVE);
+gpio_pin_set_dt(&amp;relay, 1);  /* 吸合 */
+gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">通用查找公式</div>
+            <ul>
+              <li><strong>知道外设名</strong> → <code>ls zephyr/drivers/&lt;外设&gt;/Kconfig*</code> 看选项</li>
+              <li><strong>不确定名字</strong> → <code>west build -b xxx . -t menuconfig</code> 按 <code>/</code> 搜</li>
+              <li><strong>想知道为什么某选项被打开</strong> → menuconfig 中按 <code>Shift + /</code></li>
+              <li><strong>大部分 SoC 驱动配置由 select 链自动打开</strong>，你只需写顶层开关</li>
+            </ul>
+          </div>
+
+          <div class="tags"><span class="tag">Kconfig</span><span class="tag">prj.conf</span><span class="tag">menuconfig</span><span class="tag">select</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
