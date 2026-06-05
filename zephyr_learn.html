@@ -1550,13 +1550,555 @@ led0 {
   <!-- ═══════════ CAN ═══════════ -->
   <section class="topic-section topic-can" data-topic="can" id="sec-can">
     <h2><span class="icon icon-can">C</span> CAN 总线</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- CAN-1: API 概述 -->
+      <div class="qa-card" data-topics="can" id="qa-can-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CAN 控制器的 API 有哪两种风格？分别适用于什么场景？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Zephyr 3.7 LTS 提供两套 CAN API：</strong></p>
+
+          <div class="two-paths">
+            <div class="path-card" style="border-top:3px solid #10b981;">
+              <div class="path-card-header">CAN 原生 API（总线层）</div>
+              <div class="path-card-body">
+                <pre><code>#include &lt;zephyr/drivers/can.h&gt;
+
+can_send(dev, &amp;frame, timeout, cb, arg);
+can_add_rx_filter(dev, cb, arg, &amp;filter);
+can_set_bitrate(dev, 500000);
+can_start(dev);</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">直接操作 CAN 控制器硬件，用于无操作系统或需要精确控制 CAN 帧的场景</p>
+              </div>
+            </div>
+            <div class="path-card" style="border-top:3px solid #3b82f6;">
+              <div class="path-card-header">SocketCAN API（网络层）</div>
+              <div class="path-card-body">
+                <pre><code>#include &lt;zephyr/net/socketcan.h&gt;
+
+int fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+bind(fd, &amp;addr, sizeof(addr));
+write(fd, &amp;frame, sizeof(frame)); /* 发送 */
+read(fd, &amp;frame, sizeof(frame));  /* 接收 */</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">与 Linux SocketCAN 兼容，用于需要与 Linux 系统互操作的场景</p>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>选哪个？</strong></p>
+          <ul>
+            <li>裸机/Zephyr 单机 → CAN 原生 API（更轻量）</li>
+            <li>与 Linux 上位机通信、移植 Linux 代码 → SocketCAN API（兼容性好）</li>
+            <li>SocketCAN 底层也调用原生 CAN 驱动，两者可共存</li>
+          </ul>
+
+          <div class="tags"><span class="tag">API</span><span class="tag">SocketCAN</span><span class="tag">can_send</span></div>
+        </div>
+      </div>
+
+      <!-- CAN-2: 核心结构体 -->
+      <div class="qa-card" data-topics="can" id="qa-can-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CAN 帧结构体和过滤器是如何定义的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>CAN 帧结构体（can_frame）：</strong></p>
+          <pre><code>struct can_frame {
+    canid_t id;           /* 11-bit 或 29-bit 帧 ID              */
+    uint8_t data[8];      /* 数据载荷，最多 8 字节 (CAN FD: 64)   */
+    uint8_t dlc;          /* 数据长度码 (0-8 / 9-15 表示特殊值)  */
+    uint8_t flags;        /* 帧标志 — IDE/RTR/FD/BRS/ESI         */
+};
+
+/* flags 常用值 */
+CAN_FRAME_IDE   /* 扩展 ID (29-bit)           */
+CAN_FRAME_RTR   /* 远程帧请求                  */
+CAN_FRAME_FDF   /* CAN FD 帧                  */
+CAN_FRAME_BRS   /* CAN FD 高速数据阶段          */</code></pre>
+
+          <p><strong>CAN 过滤器（can_filter）：</strong></p>
+          <pre><code>struct can_filter {
+    canid_t id;          /* 要匹配的 CAN ID                    */
+    canid_t mask;        /* 掩码：1 = 该位需匹配，0 = 不关心   */
+    uint8_t flags;       /* CAN_FILTER_IDE 表示匹配扩展帧      */
+};
+
+/* 例子：匹配 ID 0x100 ~ 0x1FF 的所有标准帧 */
+struct can_filter filter = {
+    .id   = 0x100,
+    .mask = 0xF00,       /* 只有高4位需要匹配                 */
+    .flags = 0           /* 标准帧                            */
+};
+
+/* 精确匹配 ID 0x123 */
+struct can_filter exact = {
+    .id   = 0x123,
+    .mask = CAN_EXT_ID_MASK,  /* 所有位都要匹配                */
+};</code></pre>
+
+          <div class="tags"><span class="tag">can_frame</span><span class="tag">can_filter</span><span class="tag">数据结构</span></div>
+        </div>
+      </div>
+
+      <!-- CAN-3: 收发流程 -->
+      <div class="qa-card" data-topics="can" id="qa-can-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CAN 总线使用的完整流程是怎样的？发送和接收分别怎么处理？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树配置：</strong></p>
+          <pre><code>/* 以 STM32F4 bxCAN 为例 */
+&amp;can1 {
+    pinctrl-0 = &lt;&amp;can1_rx_pd0 &amp;can1_tx_pd1&gt;;
+    pinctrl-names = "default";
+    bitrate = &lt;500000&gt;;
+    sample-point = &lt;875&gt;;    /* 87.5% 采样点 */
+    status = "okay";
+};</code></pre>
+
+          <p><strong>完整收发代码：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/can.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+const struct device *can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_can));
+
+/* ── 接收回调（在中断上下文中执行） ── */
+CAN_MSGQ_DEFINE(can_msgq, 10); /* 消息队列，缓冲接收帧 */
+static struct k_work can_rx_work;
+
+void can_rx_cb(const struct device *dev, struct can_frame *frame,
+               void *user_data)
+{
+    /* 快速丢到队列里就返回，不在中断里处理 */
+    struct can_frame *copy = k_malloc(sizeof(*frame));
+    if (copy) memcpy(copy, frame, sizeof(*frame));
+    k_msgq_put(can_msgq, &amp;copy, K_NO_WAIT);
+    k_work_submit(&amp;can_rx_work);
+}
+
+void can_rx_work_handler(struct k_work *work)
+{
+    struct can_frame *frame;
+    while (k_msgq_get(can_msgq, &amp;frame, K_NO_WAIT) == 0) {
+        /* 在主线程上下文处理收到的帧 */
+        if (frame->data[0] == 0x01) { /* 根据协议解析 */ }
+        k_free(frame);
+    }
+}
+
+void main(void)
+{
+    const struct can_filter rx_filter = {
+        .id = 0x100, .mask = 0x700,
+    };
+
+    can_set_bitrate(can_dev, 500000);
+    can_set_mode(can_dev, CAN_MODE_NORMAL);
+    can_start(can_dev);
+
+    can_add_rx_filter(can_dev, can_rx_cb, NULL, &amp;rx_filter);
+    k_work_init(&amp;can_rx_work, can_rx_work_handler);
+
+    /* 发送一帧 */
+    struct can_frame tx_frame = {
+        .id = 0x200,
+        .data = {0x01, 0x02, 0x03},
+        .dlc = 3,
+    };
+    can_send(can_dev, &amp;tx_frame, K_MSEC(100),
+             NULL, NULL);   /* 100ms 超时，阻塞发送 */
+
+    while (1) { k_msleep(1000); }
+}</code></pre>
+
+          <p><strong>设备树中获取 CAN 控制器有多种方式：</strong></p>
+          <pre><code>/* 方式一：chosen 节点（推荐） */
+DT_CHOSEN(zephyr_can)
+
+/* 方式二：直接指定标签 */
+DEVICE_DT_GET(DT_NODELABEL(can1))
+
+/* 方式三：手动指定节点 */
+DEVICE_DT_GET(DT_PATH(soc, can, 40006400))</code></pre>
+
+          <div class="tags"><span class="tag">发送</span><span class="tag">接收</span><span class="tag">过滤器</span><span class="tag">中断</span></div>
+        </div>
+      </div>
+
+      <!-- CAN-4: 平台差异 -->
+      <div class="qa-card" data-topics="can" id="qa-can-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">不同平台（STM32F1/F4/H7、ESP32）的 CAN 驱动有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <table class="props">
+            <thead><tr><th>平台</th><th>驱动</th><th>CAN FD 支持</th><th>compatible</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td>STM32F1/F4</td><td>bxCAN</td><td>不支持</td><td><code>st,stm32-bxcan</code></td><td>经典 CAN 2.0B，14 个过滤器</td></tr>
+              <tr><td>STM32H7</td><td>M_CAN (Bosch)</td><td>支持</td><td><code>bosch,mcan</code></td><td>CAN FD + 经典 CAN，与 STM32G4/G0 共用</td></tr>
+              <tr><td>ESP32-S3</td><td>TWAI</td><td>不支持</td><td><code>espressif,esp32-twai</code></td><td>兼容 SJA1000，注意 TWAI 时钟问题</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>STM32F4 bxCAN 注意事项：</strong></p>
+          <ul>
+            <li>过滤器是硬件资源，数量有限（14 个），需要合理分配</li>
+            <li>bitrate 和 sample-point 需要精确匹配 CAN 时钟频率</li>
+            <li>中断线共享 — 多个 CAN 外设可能共享同一中断向量</li>
+          </ul>
+
+          <p><strong>ESP32 TWAI 注意事项：</strong></p>
+          <ul>
+            <li>收发引脚通过 <code>tx-pin</code> / <code>rx-pin</code> 指定（GPIO Matrix 自动路由）</li>
+            <li>内部有 64 字节硬件 FIFO，但不支持多个硬件过滤器</li>
+            <li>时钟源配置不当会导致波特率偏差，建议用外部晶振</li>
+          </ul>
+
+          <div class="tags"><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">bxCAN</span><span class="tag">M_CAN</span><span class="tag">TWAI</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ PWM ═══════════ -->
   <section class="topic-section topic-pwm" data-topic="pwm" id="sec-pwm">
     <h2><span class="icon icon-pwm">P</span> PWM 输出</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- PWM-1: API 概述 -->
+      <div class="qa-card" data-topics="pwm" id="qa-pwm-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">PWM 的核心数据结构 pwm_dt_spec 和 API 是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>PWM 也使用与 GPIO 相同的 <code>_dt_spec</code> 模式：</strong></p>
+          <pre><code>struct pwm_dt_spec {
+    const struct device *dev;   /* PWM 控制器设备         */
+    uint32_t channel;           /* 通道号                  */
+    uint32_t period;            /* 周期 (ns)，从 DT 获取    */
+    uint32_t flags;             /* 标志 (PWM_POLARITY_*)   */
+};
+
+/* 从设备树获取 */
+#define PWM0 DT_ALIAS(pwm_led)
+static const struct pwm_dt_spec pwm = PWM_DT_SPEC_GET(PWM0);</code></pre>
+
+          <p><strong>核心 API：</strong></p>
+          <table class="props">
+            <thead><tr><th>函数</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>pwm_set_dt(&amp;spec, period, pulse)</code></td><td>设置周期和脉宽（均为 ns）</td></tr>
+              <tr><td><code>pwm_set_pulse_dt(&amp;spec, pulse)</code></td><td>只改变脉宽，周期不变（快）</td></tr>
+              <tr><td><code>pwm_set_cycles(&amp;spec, period, pulse, flags)</code></td><td>用计数值而非 ns 来设置</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">pwm_dt_spec</span><span class="tag">PWM_DT_SPEC_GET</span><span class="tag">API</span></div>
+        </div>
+      </div>
+
+      <!-- PWM-2: LED 调光 -->
+      <div class="qa-card" data-topics="pwm" id="qa-pwm-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">用 PWM 实现 LED 呼吸灯的完整流程是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树：</strong></p>
+          <pre><code>/* 在 .overlay 或板级 dts 中 */
+&amp;pwm2 {
+    pinctrl-0 = &lt;&amp;pwm2_ch1_pa1&gt;;   /* STM32 — 必须写 */
+    pinctrl-names = "default";
+    status = "okay";
+};
+
+/ {
+    pwmled: pwm-led {
+        compatible = "pwm-leds";
+        led0: led_pwm_0 {
+            pwms = &lt;&amp;pwm2 1 PWM_MSEC(5) PWM_POLARITY_NORMAL&gt;;
+            /*                  ↑        ↑            ↑               */
+            /*              通道号    周期 5ms    极性正常             */
+        };
+    };
+};</code></pre>
+
+          <p><strong>呼吸灯代码：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/pwm.h&gt;
+
+static const struct pwm_dt_spec pwm_led =
+    PWM_DT_SPEC_GET(DT_ALIAS(led0));
+
+void main(void)
+{
+    uint32_t period = pwm_led.period;   /* DT 中定义的周期 */
+    int dir = -1;
+    uint32_t pulse = 0;
+
+    while (1) {
+        pwm_set_pulse_dt(&amp;pwm_led, pulse);
+
+        pulse += dir * (period / 20);
+        if (pulse == 0 || pulse >= period) {
+            dir = -dir;
+        }
+        k_msleep(30);
+    }
+}</code></pre>
+
+          <p><strong>周期宏：</strong></p>
+          <pre><code>PWM_MSEC(5)       /* 周期 5ms → 200 Hz           */
+PWM_USEC(20)      /* 周期 20μs → 50kHz            */
+PWM_HZ(100)       /* 100 Hz = 10ms 周期            */
+
+PWM_POLARITY_NORMAL   /* 正常极性  */
+PWM_POLARITY_INVERTED /* 反相极性  */</code></pre>
+
+          <div class="tags"><span class="tag">LED</span><span class="tag">呼吸灯</span><span class="tag">pwm_set_dt</span></div>
+        </div>
+      </div>
+
+      <!-- PWM-3: 舵机 -->
+      <div class="qa-card" data-topics="pwm" id="qa-pwm-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">PWM 控制舵机（Servo）有什么特殊之处？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>舵机的 PWM 特性：占空比范围很窄</strong> — 通常 20ms 周期中只有 1~2ms 是高电平：</p>
+
+          <pre><code>/* 舵机参数（以 SG90 为例） */
+#define SERVO_PERIOD  PWM_MSEC(20)    /* 周期 20ms = 50Hz             */
+#define SERVO_MIN_PULSE  1000000      /* 1.0ms → 0°  (单位 ns)       */
+#define SERVO_MAX_PULSE  2000000      /* 2.0ms → 180° (单位 ns)      */
+
+/* 角度转脉宽 */
+static uint32_t angle_to_pulse(int angle)
+{
+    uint32_t range = SERVO_MAX_PULSE - SERVO_MIN_PULSE;
+    return SERVO_MIN_PULSE + (range * angle) / 180;
+}
+
+/* 设置舵机角度 90° */
+pwm_set_dt(&amp;servo, SERVO_PERIOD, angle_to_pulse(90));</code></pre>
+
+          <p><strong>要点：</strong></p>
+          <ul>
+            <li>PWM 控制的是 <strong>高电平持续时间</strong>，不是占空比 %</li>
+            <li>20ms 周期中只有 5-10% 的占空比，因此用 <code>pwm_set_dt()</code> 直接指定 ns 值更精确</li>
+            <li>设计多路舵机时要注意 PWM 控制器通道数够不够</li>
+          </ul>
+
+          <div class="tags"><span class="tag">舵机</span><span class="tag">Servo</span><span class="tag">周期</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ ADC ═══════════ -->
+  <section class="topic-section topic-adc" data-topic="adc" id="sec-adc">
+    <h2><span class="icon icon-adc">A</span> ADC 采集</h2>
+    <div class="qa-list">
+
+      <!-- ADC-1: API 概述 -->
+      <div class="qa-card" data-topics="adc" id="qa-adc-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ADC 的核心数据结构和 API 是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <pre><code>struct adc_dt_spec {
+    const struct device *dev;      /* ADC 控制器            */
+    uint8_t channel_id;            /* 通道号                */
+    uint8_t resolution;            /* 分辨率（bits）        */
+    uint8_t oversampling;          /* 过采样                */
+    adc_channel_cfg_dt_t channel;  /* 通道配置              */
+};
+
+/* 从设备树获取 */
+#define ADC0 DT_ALIAS(adc0)
+static const struct adc_dt_spec adc = ADC_DT_SPEC_GET(ADC0);</code></pre>
+
+          <p><strong>核心 API：</strong></p>
+          <table class="props">
+            <thead><tr><th>函数</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>adc_read_dt(&amp;spec, &amp;buf)</code></td><td>读取 ADC 原始值</td></tr>
+              <tr><td><code>adc_raw_to_millivolts_dt(&amp;spec, raw)</code></td><td>原始值 → 毫伏</td></tr>
+              <tr><td><code>adc_sequence_init_dt(&amp;spec, &amp;seq)</code></td><td>初始化采样序列（多通道）</td></tr>
+              <tr><td><code>adc_read(dev, &amp;seq)</code></td><td>按序列读取（多通道时用）</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">adc_dt_spec</span><span class="tag">ADC_DT_SPEC_GET</span></div>
+        </div>
+      </div>
+
+      <!-- ADC-2: 完整流程 -->
+      <div class="qa-card" data-topics="adc" id="qa-adc-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ADC 单通道采样的完整流程是怎样的？如何转换为实际电压？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树：</strong></p>
+          <pre><code>/* #include &lt;zephyr/dt-bindings/adc/adc.h&gt; （提供 ADC 宏） */
+
+/* STM32 示例 */
+&amp;adc1 {
+    pinctrl-0 = &lt;&amp;adc1_in5_pa5&gt;;
+    pinctrl-names = "default";
+    status = "okay";
+
+    #address-cells = &lt;1&gt;;
+    #size-cells = &lt;0&gt;
+
+    channel@5 {
+        reg = &lt;5&gt;;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = &lt;ADC_ACQ_TIME_DEFAULT&gt;;
+        zephyr,resolution = &lt;12&gt;;
+    };
+};
+
+/ {
+    zephyr,user {
+        adc0: adc-sensor {
+            io-channels = &lt;&amp;adc1 5&gt;;
+        };
+    };
+};</code></pre>
+
+          <p><strong>完整代码：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/adc.h&gt;
+
+static const struct adc_dt_spec adc =
+    ADC_DT_SPEC_GET(DT_ALIAS(adc0));
+
+void main(void)
+{
+    if (!device_is_ready(adc.dev)) return;
+
+    /* 在应用层可覆盖 DT 设置 */
+    adc_dt_spec.adc.gain = ADC_GAIN_1;
+    adc_dt_spec.adc.reference = ADC_REF_INTERNAL;
+    adc_dt_spec.adc.acquisition = ADC_ACQ_TIME_DEFAULT;
+
+    while (1) {
+        int16_t buf;
+        struct adc_sequence seq = {
+            .buffer = &amp;buf,
+            .buffer_size = sizeof(buf),
+            .resolution = adc.resolution,
+            .channels = BIT(adc.channel_id),
+        };
+
+        int err = adc_read(adc.dev, &amp;seq);
+        if (err == 0) {
+            int32_t mv = adc_raw_to_millivolts(&amp;seq, adc.gain,
+                                                adc.reference, &amp;buf, 1);
+            /* buf = 原始值 (如 0-4095 @12bit) */
+            /* mv  = 毫伏值 (如 0-3300mV @3.3V参考) */
+        }
+
+        k_msleep(100);
+    }
+}</code></pre>
+
+          <p><strong>简化版（单通道 dt spec）：</strong></p>
+          <pre><code>int16_t raw;
+adc_read_dt(&amp;adc, &amp;raw);
+int32_t mv = adc_raw_to_millivolts_dt(&amp;adc, raw);</code></pre>
+
+          <div class="tags"><span class="tag">采样</span><span class="tag">毫伏</span><span class="tag">分辨率</span></div>
+        </div>
+      </div>
+
+      <!-- ADC-3: 多通道 -->
+      <div class="qa-card" data-topics="adc" id="qa-adc-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ADC 如何实现多通道连续采样？DMA 模式是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>多通道扫描采样：</strong></p>
+          <pre><code>/* 设备树 — 多个通道 */
+&amp;adc1 {
+    channel@1 { reg = &lt;1&gt;; };   /* PA1 — 通道 1 */
+    channel@5 { reg = &lt;5&gt;; };   /* PA5 — 通道 5 */
+    channel@8 { reg = &lt;8&gt;; };   /* PB0 — 通道 8 */
+};
+
+/* C 代码 — 轮询扫描 */
+#define CH_COUNT 3
+int16_t samples[CH_COUNT];
+int32_t millivolts[CH_COUNT];
+uint8_t channels[] = {1, 5, 8};
+
+struct adc_sequence seq = {
+    .buffer = samples,
+    .buffer_size = sizeof(samples),
+    .resolution = 12,
+    .channels = BIT(1) | BIT(5) | BIT(8),
+};
+adc_read(adc.dev, &amp;seq);
+adc_raw_to_millivolts(&amp;seq, ... , samples, CH_COUNT);</code></pre>
+
+          <p><strong>DMA 连续采样（以 STM32 为例）：</strong></p>
+          <pre><code>/* 启用 CONFIG_ADC_ASYNC=y */
+
+#define SAMPLES 64
+static int16_t dma_buf[SAMPLES];
+static int16_t dma_buf2[SAMPLES];  /* 双缓冲 */
+
+struct adc_sequence seq = {
+    .buffer = dma_buf,
+    .buffer_size = sizeof(dma_buf),
+    .resolution = 12,
+    .channels = BIT(5),
+};
+
+/* 配置异步回调 */
+static void adc_done(const struct device *dev,
+                     const struct adc_sequence *seq, void *arg)
+{
+    /* DMA 完成后处理 dma_buf */
+    /* 切换到 dma_buf2，重新启动下一轮 */
+}
+
+/* 启动异步采样 */
+adc_read_async(adc.dev, &amp;seq, adc_done, NULL);</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>注意：</strong>DMA 异步 ADC 需要启用 <code>CONFIG_ADC_ASYNC=y</code>，且并非所有平台都支持。STM32 支持较好，ESP32 需要确认驱动能力。</span>
+          </div>
+
+          <div class="tags"><span class="tag">多通道</span><span class="tag">DMA</span><span class="tag">异步</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ ADC ═══════════ -->
@@ -1568,7 +2110,309 @@ led0 {
   <!-- ═══════════ I²C ═══════════ -->
   <section class="topic-section topic-i2c" data-topic="i2c" id="sec-i2c">
     <h2><span class="icon icon-i2c">I</span> I&sup2;C 总线</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- I2C-1: API -->
+      <div class="qa-card" data-topics="i2c" id="qa-i2c-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">I&sup2;C 的核心结构体 i2c_dt_spec 和 API 是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <pre><code>struct i2c_dt_spec {
+    const struct device *bus;      /* I&sup2;C 控制器               */
+    uint16_t addr;                 /* 从机 7-bit 地址              */
+};
+
+/* 从设备树获取 — 一次包含 I&sup2;C 总线和从机地址 */
+static const struct i2c_dt_spec dev_i2c =
+    I2C_DT_SPEC_GET(DT_ALIAS(sensor));</code></pre>
+
+          <p><strong>核心 API（推荐用 <code>_dt</code> 后缀版本）：</strong></p>
+          <table class="props">
+            <thead><tr><th>函数</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>i2c_write_dt(&amp;spec, buf, len)</code></td><td>写数据到 slave_addr</td></tr>
+              <tr><td><code>i2c_read_dt(&amp;spec, buf, len)</code></td><td>从 slave_addr 读数据</td></tr>
+              <tr><td><code>i2c_write_read_dt(&amp;spec, wbuf, wlen, rbuf, rlen)</code></td><td>先写后读（寄存器操作）</td></tr>
+              <tr><td><code>i2c_burst_read_dt(&amp;spec, reg, buf, len)</code></td><td>读指定寄存器开始的连续数据</td></tr>
+              <tr><td><code>i2c_burst_write_dt(&amp;spec, reg, buf, len)</code></td><td>写指定寄存器开始的连续数据</td></tr>
+              <tr><td><code>i2c_configure_dt(&amp;spec, config)</code></td><td>配置总线速度</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">i2c_dt_spec</span><span class="tag">I2C_DT_SPEC_GET</span></div>
+        </div>
+      </div>
+
+      <!-- I2C-2: 读写流程 -->
+      <div class="qa-card" data-topics="i2c" id="qa-i2c-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">I&sup2;C 读写传感器的典型流程是怎样的？Device Tree 怎么写？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树：</strong></p>
+          <pre><code>&amp;i2c1 {
+    pinctrl-0 = &lt;&amp;i2c1_scl_pb6 &amp;i2c1_sda_pb7&gt;;
+    pinctrl-names = "default";
+    clock-frequency = &lt;I2C_BITRATE_STANDARD&gt;;  /* 100 kHz */
+    status = "okay";
+
+    /* 温度传感器 TMP108 @ 0x48 */
+    tmp108: temp-sensor@48 {
+        compatible = "ti,tmp108";
+        reg = &lt;0x48&gt;;
+    };
+};</code></pre>
+
+          <p><strong>完整代码 — 读写寄存器：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/i2c.h&gt;
+
+static const struct i2c_dt_spec tmp108 =
+    I2C_DT_SPEC_GET(DT_NODELABEL(tmp108));
+
+void main(void)
+{
+    if (!device_is_ready(tmp108.bus)) return;
+
+    /* 读温度寄存器（0x00） — 2 字节 */
+    uint8_t reg_addr = 0x00;
+    uint8_t data[2] = {0};
+
+    int ret = i2c_write_read_dt(&amp;tmp108,
+        &amp;reg_addr, 1,    /* 先发 1 字节寄存器地址 */
+        data, 2);         /* 再读 2 字节数据       */
+
+    /* 或者用 burst_read 简化 */
+    ret = i2c_burst_read_dt(&amp;tmp108, 0x00, data, 2);
+
+    if (ret == 0) {
+        int16_t temp_raw = (data[0] &lt;&lt; 8) | data[1];
+        /* 根据 datasheet 换算为实际温度 */
+    }
+}</code></pre>
+
+          <p><strong>I&sup2;C 速度选项：</strong></p>
+          <pre><code>I2C_BITRATE_STANDARD  /* 100 kHz */
+I2C_BITRATE_FAST      /* 400 kHz */
+I2C_BITRATE_FAST_PLUS /* 1 MHz   */
+I2C_BITRATE_HIGH      /* 3.4 MHz */
+I2C_BITRATE_ULTRA     /* 5 MHz   */</code></pre>
+
+          <div class="tags"><span class="tag">读写</span><span class="tag">寄存器</span><span class="tag">i2c_write_read_dt</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ SPI ═══════════ -->
+  <section class="topic-section topic-spi" data-topic="spi" id="sec-spi">
+    <h2><span class="icon icon-spi">S</span> SPI 总线</h2>
+    <div class="qa-list">
+
+      <!-- SPI-1: API -->
+      <div class="qa-card" data-topics="spi" id="qa-spi-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">SPI 的核心结构体 spi_dt_spec 和 API 是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <pre><code>struct spi_dt_spec {
+    const struct device *bus;       /* SPI 控制器                        */
+    struct spi_config config;       /* 频率、模式、CS 引脚              */
+};
+
+/* 从设备树获取 */
+static const struct spi_dt_spec spi_dev =
+    SPI_DT_SPEC_GET(DT_NODELABEL(sensor), SPI_WORD_SET(8), 0);</code></pre>
+
+          <p><strong>核心 API：</strong></p>
+          <table class="props">
+            <thead><tr><th>函数</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>spi_read_dt(&amp;spec, &amp;buf, len)</code></td><td>只读（MOSI 发 0）</td></tr>
+              <tr><td><code>spi_write_dt(&amp;spec, &amp;buf, len)</code></td><td>只写（忽略 MISO）</td></tr>
+              <tr><td><code>spi_transceive_dt(&amp;spec, &amp;tx, len, &amp;rx, len)</code></td><td>全双工同时收发</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">spi_dt_spec</span><span class="tag">SPI_DT_SPEC_GET</span></div>
+        </div>
+      </div>
+
+      <!-- SPI-2: 流程 -->
+      <div class="qa-card" data-topics="spi" id="qa-spi-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">SPI 传感器的典型读写流程是怎样的？SPI 模式（CPOL/CPHA）如何配置？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树：</strong></p>
+          <pre><code>&amp;spi1 {
+    pinctrl-0 = &lt;&amp;spi1_sck_pa5 &amp;spi1_miso_pa6 &amp;spi1_mosi_pa7&gt;;
+    pinctrl-names = "default";
+    cs-gpios = &lt;&amp;gpioa 4 GPIO_ACTIVE_LOW&gt;;  /* 硬件 CS */
+    status = "okay";
+
+    bme280: sensor@0 {
+        compatible = "bosch,bme280";
+        reg = &lt;0&gt;;                            /* CS 线 0   */
+        spi-max-frequency = &lt;10000000&gt;;       /* 10 MHz    */
+    };
+};</code></pre>
+
+          <p><strong>完整代码 — 读写寄存器：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/spi.h&gt;
+
+static const struct spi_dt_spec bme =
+    SPI_DT_SPEC_GET(DT_NODELABEL(bme280), SPI_WORD_SET(8), 0);
+
+void main(void)
+{
+    if (!device_is_ready(bme.bus)) return;
+
+    /* 读芯片 ID 寄存器（0xD0） */
+    uint8_t tx[] = {0xD0 | 0x80, 0x00};  /* 第1字节=寄存器地址|读位 */
+    uint8_t rx[2] = {0};
+
+    struct spi_buf tx_buf = { .buf = tx, .len = 2 };
+    struct spi_buf rx_buf = { .buf = rx, .len = 2 };
+    struct spi_buf_set tx_set = { .buffers = &amp;tx_buf, .count = 1 };
+    struct spi_buf_set rx_set = { .buffers = &amp;rx_buf, .count = 1 };
+
+    spi_transceive_dt(&amp;bme, &amp;tx_set, &amp;rx_set);
+
+    printk("Chip ID: 0x%02x\n", rx[1]);   /* rx[0] 是 dummy */</code></pre>
+
+          <p><strong>SPI 模式配置（CPOL/CPHA）：</strong></p>
+          <pre><code>SPI_MODE_CPOL       /* CPOL=1, CPHA=0 */
+SPI_MODE_CPHA       /* CPOL=0, CPHA=1 */
+SPI_MODE_CPOL_CPHA  /* CPOL=1, CPHA=1 — 即 SPI_MODE_3 */
+/* 默认就是 SPI_MODE_0 = CPOL=0, CPHA=0 */
+
+/* 可在 DT 中直接设置 */
+spi-max-frequency = &lt;10000000&gt;;
+duplex = &lt;0x800&gt;;  /* SPI_FULL_DUPLEX */</code></pre>
+
+          <div class="tags"><span class="tag">读写</span><span class="tag">CPOL</span><span class="tag">CPHA</span><span class="tag">片选</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ UART ═══════════ -->
+  <section class="topic-section topic-uart" data-topic="uart" id="sec-uart">
+    <h2><span class="icon icon-uart">U</span> UART 串口</h2>
+    <div class="qa-list">
+
+      <!-- UART-1: API -->
+      <div class="qa-card" data-topics="uart" id="qa-uart-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">UART 的 API 和配置是怎样的？中断接收怎么处理？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>UART 没有 <code>_dt_spec</code> 结构体</strong>（不像 I&sup2;C/SPI），直接用 <code>const struct device *</code>：</p>
+
+          <table class="props">
+            <thead><tr><th>函数</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>uart_tx(dev, buf, len, timeout)</code></td><td>阻塞发送</td></tr>
+              <tr><td><code>uart_rx_enable(dev, buf, len, timeout)</code></td><td>启动中断接收</td></tr>
+              <tr><td><code>uart_poll_in(dev, &amp;ch)</code></td><td>轮询读一个字节</td></tr>
+              <tr><td><code>uart_poll_out(dev, ch)</code></td><td>轮询写一个字节</td></tr>
+              <tr><td><code>uart_irq_callback_set(dev, cb)</code></td><td>设置中断回调</td></tr>
+              <tr><td><code>uart_callback_set(dev, cb, evt)</code></td><td>设置异步回调（推荐）</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>设备树：</strong></p>
+          <pre><code>/* console = &amp;usart1 或者直接使用 */
+&amp;usart1 {
+    pinctrl-0 = &lt;&amp;usart1_tx_pa9 &amp;usart1_rx_pa10&gt;;
+    pinctrl-names = "default";
+    current-speed = &lt;115200&gt;;
+    status = "okay";
+};</code></pre>
+
+          <div class="tags"><span class="tag">UART</span><span class="tag">中断</span><span class="tag">异步</span></div>
+        </div>
+      </div>
+
+      <!-- UART-2: 中断接收 -->
+      <div class="qa-card" data-topics="uart" id="qa-uart-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">UART 中断接收（不定长数据）怎样实现？异步 API 怎么用？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>方式一：FIFO 中断接收（推荐 — 不定长数据）：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/uart.h&gt;
+
+#define RING_BUF_SIZE 256
+RING_BUF_DECLARE(uart_rb, RING_BUF_SIZE);
+
+/* FIFO 中断回调 */
+static void uart_fifo_cb(const struct device *dev, void *user_data)
+{
+    uint8_t ch;
+    /* UART 的 FIFO 里有数据，逐个读出来 */
+    while (uart_irq_update(dev) &amp;&amp; uart_irq_is_pending(dev)) {
+        if (uart_irq_rx_ready(dev)) {
+            while (uart_fifo_read(dev, &amp;ch, 1) == 1) {
+                ring_buf_put(&amp;uart_rb, &amp;ch, 1);
+            }
+        }
+    }
+}
+
+void main(void)
+{
+    const struct device *uart = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    uart_irq_callback_set(uart, uart_fifo_cb);
+    uart_irq_rx_enable(uart);  /* 开始接收 */
+}</code></pre>
+
+          <p><strong>方式二：异步 API（Zephyr 3.7 推荐）：</strong></p>
+          <pre><code>static void uart_async_cb(const struct device *dev,
+                           struct uart_event *evt, void *user_data)
+{
+    switch (evt->type) {
+    case UART_TX_DONE:    break;  /* 发送完成    */
+    case UART_TX_ABORTED: break;  /* 发送被中止   */
+    case UART_RX_RDY:            /* 收到数据     */
+        /* evt->data.rx.buf + evt->data.rx.len */
+        break;
+    case UART_RX_BUF_REQUEST:    /* 需要新缓冲区  */
+    case UART_RX_BUF_RELEASED:   /* 缓冲区可复用  */
+    case UART_RX_STOPPED:        /* 接收停止     */
+    case UART_RX_DISABLED: break;
+    }
+}
+
+/* 启用异步 */
+uart_callback_set(uart, uart_async_cb, NULL);
+uart_rx_enable(uart, rx_buf, sizeof(rx_buf), 50); /* 50ms 字节间超时 */</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>注意：</strong>异步 UART API 需要 <code>CONFIG_UART_ASYNC_API=y</code>。ESP32 的 UART 本身就支持异步，STM32 需要看具体型号的驱动支持情况。</span>
+          </div>
+
+          <div class="tags"><span class="tag">FIFO</span><span class="tag">中断</span><span class="tag">异步API</span><span class="tag">ring_buf</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ SPI ═══════════ -->
@@ -1586,19 +2430,320 @@ led0 {
   <!-- ═══════════ Timer ═══════════ -->
   <section class="topic-section topic-timer" data-topic="timer" id="sec-timer">
     <h2><span class="icon icon-timer">T</span> 定时器</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- TIMER-1: 内核定时器 vs 硬件定时器 -->
+      <div class="qa-card" data-topics="timer" id="qa-timer-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 中内核定时器和硬件定时器（Counter）有什么区别？分别怎么用？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <div class="two-paths">
+            <div class="path-card simple">
+              <div class="path-card-header">内核定时器（k_timer）</div>
+              <div class="path-card-body">
+                <p style="font-size:0.82rem;">基于系统 tick，精度取决于内核配置，适合通用定时/超时：</p>
+                <pre><code>#include &lt;zephyr/kernel.h&gt;
+
+void timer_expired(struct k_timer *timer) {
+    /* 定时器到期 — 中断上下文 */
+}
+
+struct k_timer my_timer;
+
+k_timer_init(&amp;my_timer, timer_expired, NULL);
+k_timer_start(&amp;my_timer, K_SECONDS(1), K_SECONDS(1));
+/*          启动          首次 1s     周期 1s   */
+k_timer_stop(&amp;my_timer);
+k_timer_status_sync(&amp;my_timer); /* 等待 stop 生效 */</code></pre>
+              </div>
+            </div>
+            <div class="path-card complex">
+              <div class="path-card-header">硬件 Counter（counter API）</div>
+              <div class="path-card-body">
+                <p style="font-size:0.82rem;">直接操作硬件定时器外设，精度可达微秒甚至纳秒级：</p>
+                <pre><code>#include &lt;zephyr/drivers/counter.h&gt;
+
+const struct device *cnt = DEVICE_DT_GET(DT_ALIAS(counter));
+
+counter_start(cnt);
+uint32_t ticks;
+counter_get_value(cnt, &amp;ticks);
+
+/* 单次闹钟 */
+counter_set_channel_alarm(cnt, 0,
+    ticks + counter_us_to_ticks(cnt, 1000),
+    alarm_cb, NULL);</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>选哪个？</strong></p>
+          <ul>
+            <li>一般定时/超时/周期性任务 → <code>k_timer</code>（简单、跨平台）</li>
+            <li>高精度定时/PWM 输入捕获/编码器 → Counter API（硬件精度）</li>
+            <li>需要注意 Counter 的通道数量有限（取决于硬件）</li>
+          </ul>
+
+          <div class="tags"><span class="tag">k_timer</span><span class="tag">counter</span><span class="tag">定时器</span></div>
+        </div>
+      </div>
+
+      <!-- TIMER-2: 时间 API -->
+      <div class="qa-card" data-topics="timer" id="qa-timer-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 中有哪些延时和定时 API？如何选择？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <table class="props">
+            <thead><tr><th>API</th><th>精度</th><th>阻塞？</th><th>适用场景</th></tr></thead>
+            <tbody>
+              <tr><td><code>k_sleep(K_MSEC(100))</code></td><td>tick 级</td><td>是</td><td>线程延时，让出 CPU</td></tr>
+              <tr><td><code>k_msleep(100)</code></td><td>tick 级</td><td>是</td><td>同上，简写</td></tr>
+              <tr><td><code>k_busy_wait(1000)</code></td><td>微秒</td><td>是</td><td>短延时（µs 级），不切换线程</td></tr>
+              <tr><td><code>k_timer_start()</code></td><td>tick 级</td><td>否</td><td>异步定时回调</td></tr>
+              <tr><td><code>k_uptime_get()</code></td><td>tick 级</td><td>否</td><td>获取系统启动后毫秒数</td></tr>
+              <tr><td><code>k_cycle_get_32()</code></td><td>CPU 周期</td><td>否</td><td>高精度时间戳/性能测量</td></tr>
+              <tr><td><code>k_work_schedule()</code></td><td>tick 级</td><td>否</td><td>延迟执行工作项</td></tr>
+            </tbody>
+          </table>
+
+          <div class="rule-box">
+            <div class="rule-title">选择规则</div>
+            <ul>
+              <li>延时 &gt; 1ms → <code>k_sleep()</code> 或 <code>k_msleep()</code></li>
+              <li>延时 &lt; 1ms 但不能阻塞 → <code>k_busy_wait()</code></li>
+              <li>周期定时回调 → <code>k_timer</code></li>
+              <li>一次性延迟执行 → <code>k_work_schedule()</code></li>
+            </ul>
+          </div>
+
+          <div class="tags"><span class="tag">k_sleep</span><span class="tag">k_timer</span><span class="tag">延时</span><span class="tag">时间</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ DMA ═══════════ -->
   <section class="topic-section topic-dma" data-topic="dma" id="sec-dma">
     <h2><span class="icon icon-dma">D</span> DMA</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- DMA-1: 概述 -->
+      <div class="qa-card" data-topics="dma" id="qa-dma-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr DMA API 的核心概念和使用流程是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>DMA API 核心结构：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/dma.h&gt;
+
+struct dma_config {
+    uint32_t source_address;       /* 源地址                 */
+    uint32_t dest_address;         /* 目标地址               */
+    uint32_t block_size;           /* 每次传输字节数          */
+    uint32_t source_data_size;     /* 源数据宽度（1/2/4）    */
+    uint32_t dest_data_size;       /* 目标数据宽度           */
+    uint32_t source_burst_length;  /* 源 burst 长度          */
+    uint32_t dest_burst_length;    /* 目标 burst 长度        */
+
+    /* 通道配置 */
+    uint32_t channel_direction;    /* MEM→MEM, MEM→PERIPH,
+                                       PERIPH→MEM           */
+};
+
+/* 传输块描述符 */
+struct dma_block_config {
+    uint32_t source_address;
+    uint32_t dest_address;
+    uint32_t block_size;
+    struct dma_block_config *next_block;  /* 链表传输          */
+};</code></pre>
+
+          <p><strong>DMA 使用流程：</strong></p>
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">1</span><div class="layer-label">设备树配置</div><div class="layer-desc">声明外设使用 DMA（dma-names / dmas 属性）</div></div>
+            <div class="layer layer-mid"><span class="layer-num">2</span><div class="layer-label">获取 DMA 设备和通道</div><div class="layer-desc"><code>DEVICE_DT_GET()</code> + DT 提取的通道号</div></div>
+            <div class="layer layer-mid"><span class="layer-num">3</span><div class="layer-label">填充 dma_config + dma_block_config</div><div class="layer-desc">源/目标地址、传输大小、方向、burst</div></div>
+            <div class="layer layer-bot"><span class="layer-num">4</span><div class="layer-label">启动传输</div><div class="layer-desc"><code>dma_config()</code> → <code>dma_start()</code>，等待回调</div></div>
+          </div>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>重要：</strong>DMA 是 Zephyr 中<strong>平台差异最大</strong>的子系统之一。STM32 使用 stm32-dma / stm32-mdma，ESP32 使用 gdma。设备树绑定和 channel 编号方式完全不同，务必参考具体平台的 board dts 和示例。</span>
+          </div>
+
+          <div class="tags"><span class="tag">DMA</span><span class="tag">dma_config</span><span class="tag">传输</span></div>
+        </div>
+      </div>
+
+      <!-- DMA-2: STM32 vs ESP32 -->
+      <div class="qa-card" data-topics="dma" id="qa-dma-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">STM32 和 ESP32 的 DMA 在设备树中如何配置？有什么不同？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>STM32 DMA 设备树示例（ADC 使用 DMA）：</strong></p>
+          <pre><code>&amp;adc1 {
+    dmas = &lt;&amp;dma2 0 0 DMA_PRIORITY_HIGH&gt;;
+    dma-names = "adc1";
+    status = "okay";
+};</code></pre>
+
+          <p><strong>ESP32-S3 GDMA 设备树示例（SPI 使用 DMA）：</strong></p>
+          <pre><code>&amp;spi2 {
+    dmas = &lt;&amp;gdma 0 0&gt;, &lt;&amp;gdma 1 0&gt;;
+    dma-names = "tx", "rx";
+    status = "okay";
+};</code></pre>
+
+          <p><strong>主要差异：</strong></p>
+          <table class="props">
+            <thead><tr><th>对比</th><th>STM32</th><th>ESP32</th></tr></thead>
+            <tbody>
+              <tr><td>DMA 控制器</td><td>dma1 / dma2（多控制器）</td><td>gdma（单一控制器）</td></tr>
+              <tr><td>通道分配</td><td>流(Stream) + 通道(Channel)</td><td>通道号直接指定</td></tr>
+              <tr><td>外设映射</td><td>固定 — 每个外设只能用特定 DMA 流</td><td>灵活 — DMA 通道可分配给任意外设</td></tr>
+              <tr><td>优先级</td><td>DMA_PRIORITY_*</td><td>在 dma_config 中设置</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">GDMA</span><span class="tag">dma配置</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ 线程与调度 ═══════════ -->
   <section class="topic-section topic-thread" data-topic="thread" id="sec-thread">
     <h2><span class="icon icon-thread">&theta;</span> 线程与调度</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- THREAD-1: 线程创建 -->
+      <div class="qa-card" data-topics="thread" id="qa-thread-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 中如何创建线程？有哪些方式？各有什么优缺点？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>方式一：静态定义（推荐 — 编译时分配所有资源）</strong></p>
+          <pre><code>#define STACK_SIZE 1024
+#define PRIORITY 5
+
+K_THREAD_DEFINE(my_tid, STACK_SIZE,
+                my_thread_fn, NULL, NULL, NULL,
+                PRIORITY, 0, 0);
+
+/* 或者用 k_thread_create() 显式创建 */
+K_THREAD_STACK_DEFINE(my_stack, STACK_SIZE);
+struct k_thread my_thread;
+
+k_thread_create(&amp;my_thread, my_stack, STACK_SIZE,
+                my_thread_fn, NULL, NULL, NULL,
+                PRIORITY, 0, K_NO_WAIT);
+
+void my_thread_fn(void *a, void *b, void *c) {
+    while (1) {
+        /* 线程主循环 */
+        k_msleep(100);
+    }
+}</code></pre>
+
+          <p><strong>方式二：动态分配（灵活但需要堆）</strong></p>
+          <pre><code>/* 需要 CONFIG_DYNAMIC_THREAD=y */
+k_tid_t tid = k_thread_create(
+    &amp;my_thread,
+    k_thread_stack_alloc(1024, 0), 1024,
+    my_thread_fn, NULL, NULL, NULL,
+    PRIORITY, 0, K_MSEC(100));</code></pre>
+
+          <p><strong>线程优先级规则：</strong></p>
+          <ul>
+            <li>数值越小优先级越高（0 = 最高优先级）</li>
+            <li>协程(cooperative, 负数) → 不会被抢占，必须主动让出 CPU</li>
+            <li>抢占式(preemptive, 正数) → 会被更高优先级线程抢占</li>
+            <li>主线程优先级默认 = 0（可配置），空闲线程优先级最低</li>
+          </ul>
+
+          <div class="tags"><span class="tag">线程</span><span class="tag">k_thread</span><span class="tag">优先级</span></div>
+        </div>
+      </div>
+
+      <!-- THREAD-2: 同步 -->
+      <div class="qa-card" data-topics="thread" id="qa-thread-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">线程间通信和同步有哪些方式？信号量、互斥锁、消息队列怎么选？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <table class="props">
+            <thead><tr><th>机制</th><th>用途</th><th>特点</th></tr></thead>
+            <tbody>
+              <tr><td><strong>信号量</strong> (<code>k_sem</code>)</td><td>事件通知、资源计数</td><td>支持 give/take/take_timeout，无所有权概念</td></tr>
+              <tr><td><strong>互斥锁</strong> (<code>k_mutex</code>)</td><td>保护共享资源</td><td>有所有权、支持优先级继承（防优先级反转）</td></tr>
+              <tr><td><strong>消息队列</strong> (<code>k_msgq</code>)</td><td>线程间传递数据</td><td>固定大小消息、阻塞/非阻塞</td></tr>
+              <tr><td><strong>FIFO/LIFO</strong> (<code>k_fifo</code>)</td><td>不定长数据流</td><td>链表结构、支持异步等待</td></tr>
+              <tr><td><strong>事件</strong> (<code>k_event</code>)</td><td>多条件等待</td><td>支持 32 bit 掩码、AND/OR 等待</td></tr>
+              <tr><td><strong>工作队列</strong> (<code>k_work</code>)</td><td>延迟/异步执行</td><td>在系统工作线程中执行，避免创建过多线程</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>典型用法对照：</strong></p>
+          <pre><code>/* 信号量 — ISR 通知线程 */
+K_SEM_DEFINE(data_ready, 0, 1);
+/* ISR: */ k_sem_give(&amp;data_ready);
+/* Thread: */ k_sem_take(&amp;data_ready, K_FOREVER);
+
+/* 互斥锁 — 保护共享变量 */
+K_MUTEX_DEFINE(dev_lock);
+k_mutex_lock(&amp;dev_lock, K_FOREVER);
+/* ... 访问共享资源 ... */
+k_mutex_unlock(&amp;dev_lock);
+
+/* 消息队列 — 线程间传数据 */
+K_MSGQ_DEFINE(uart_msgq, sizeof(struct msg), 10, 4);
+struct msg m;
+k_msgq_put(&amp;uart_msgq, &amp;m, K_NO_WAIT);  /* 发送 */
+k_msgq_get(&amp;uart_msgq, &amp;m, K_FOREVER);  /* 接收 */
+
+/* 事件 — 等待多个条件 */
+K_EVENT_DEFINE(my_events);
+k_event_set(&amp;my_events, 0x01);
+uint32_t evts = k_event_wait(&amp;my_events, 0x03, false,
+
+/* 工作队列 — 延迟处理 */
+struct k_work_delayable my_work;
+k_work_init_delayable(&amp;my_work, work_handler);
+k_work_schedule(&amp;my_work, K_MSEC(100));  /* 100ms 后执行 */</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">选择规则</div>
+            <ul>
+              <li>ISR → 线程通知用<strong>信号量</strong></li>
+              <li>保护共享变量用<strong>互斥锁</strong>（不是信号量！信号量没有优先级继承）</li>
+              <li>传递数据用<strong>消息队列</strong>或 <strong>FIFO</strong></li>
+              <li>延迟执行、减少线程数量用<strong>工作队列</strong></li>
+              <li>需要等待多个条件用<strong>事件</strong> (k_event)</li>
+            </ul>
+          </div>
+
+          <div class="tags"><span class="tag">信号量</span><span class="tag">互斥锁</span><span class="tag">消息队列</span><span class="tag">工作队列</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <!-- ═══════════ 其他 ═══════════ -->
