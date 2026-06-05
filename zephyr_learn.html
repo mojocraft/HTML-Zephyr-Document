@@ -420,6 +420,105 @@ gpio_pin_interrupt()</code></pre>
         </div>
       </div>
 
+
+      <div class="qa-card" data-topics="fundamentals devicetree spi i2c can" id="qa-fund-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">自定义设备时，如何确定在设备树中应该写哪些属性？以 SPI 传感器、I²C 显示屏、CAN 设备为例</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>核心方法：每个 compatible 字符串对应一个 YAML 绑定文件，绑定文件里声明了所有合法属性。</strong></p>
+
+          <p><strong>查找属性的三步法：</strong></p>
+          <ol>
+            <li><strong>确定设备的 compatible</strong> — 如 <code>"st,lis2dh"</code>，这是找到绑定的钥匙</li>
+            <li><strong>找到对应的绑定文件</strong> — 在 <code>zephyr/dts/bindings/</code> 下按厂商/类型组织</li>
+            <li><strong>读 YAML 的 properties</strong> — 还包括 include 继承链中的属性</li>
+          </ol>
+
+          <pre><code>zephyr/dts/bindings/
+├── sensor/
+│   └── st,lis2dh.yaml          ← I²C/SPI 传感器绑定
+├── i2c/
+│   └── i2c-device.yaml          ← 通用 I²C 设备基类
+├── spi/
+│   └── spi-device.yaml          ← 通用 SPI 设备基类
+├── can/
+│   └── bosch,mcan.yaml          ← CAN 控制器绑定
+└── vendor-prefixes.txt</code></pre>
+
+          <p><strong>三种设备对照：</strong></p>
+          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
+            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">设备类型</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">必需属性</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">可选属性</th></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">SPI 传感器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">compatible, reg (CS 片选编号)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">irq-gpios, spi-max-frequency</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">I²C 显示屏</td><td style="padding:6px 10px; border:1px solid #dee2e6;">compatible, reg (I²C 7-bit 地址)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">reset-gpios, dc-gpios, width, height</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">CAN 设备</td><td style="padding:6px 10px; border:1px solid #dee2e6;">compatible (控制器已有绑定)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">bitrate, sample-point, bus-speed</td></tr>
+          </table>
+
+          <p><strong>SPI 传感器实例（BME280）：</strong></p>
+          <pre><code>&amp;spi1 {
+    pinctrl-0 = &lt;&amp;spi1_sck_pa5 &amp;spi1_miso_pa6 &amp;spi1_mosi_pa7&gt;;
+    pinctrl-names = "default";
+    status = "okay";
+
+    bme280@0 {
+        compatible = "bosch,bme280";
+        reg = &lt;0&gt;;                       /* CS 片选线 0 */
+        spi-max-frequency = &lt;10000000&gt;;  /* 10 MHz */
+    };
+};</code></pre>
+          <p>SPI 总线上 <code>reg</code> 表示第几根 CS 片选线（不是地址）。</p>
+
+          <p><strong>I²C 显示屏实例（SSD1306）：</strong></p>
+          <pre><code>&amp;i2c0 {
+    pinctrl-0 = &lt;&amp;i2c0_scl_pb6 &amp;i2c0_sda_pb7&gt;;
+    pinctrl-names = "default";
+    status = "okay";
+
+    ssd1306@3c {
+        compatible = "solomon,ssd1306fb";
+        reg = &lt;0x3c&gt;;        /* I²C 7-bit 地址 */
+        width = &lt;128&gt;;
+        height = &lt;64&gt;;
+        reset-gpios = &lt;&amp;gpiob 8 GPIO_ACTIVE_LOW&gt;;
+    };
+};</code></pre>
+          <p>I²C 总线上 <code>reg</code> 表示设备的 7-bit 地址。</p>
+
+          <p><strong>CAN 总线设备的特殊性：</strong></p>
+          <p>CAN 总线上的设备通常<strong>不在 devicetree 中描述</strong>，因为 Zephyr 没有像 I²C/SPI 那样的"CAN 设备"总线模型。只有 CAN 控制器本身在 devicetree 中配置，CAN 上的设备在应用层用 SocketCAN 通信。</p>
+          <pre><code>/* 只有 CAN 控制器在 devicetree 中 */
+&amp;can1 {
+    pinctrl-0 = &lt;&amp;can1_rx_pd0 &amp;can1_tx_pd1&gt;;
+    pinctrl-names = "default";
+    bitrate = &lt;500000&gt;;
+    status = "okay";
+};
+
+/* CAN 上的设备不在 devicetree 中，应用层用 socket CAN */
+int sock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+/* 直接与总线上的设备通信 */</code></pre>
+
+          <p><strong>如果完全自定义一个新设备（没有现成 binding）：</strong></p>
+          <p>在项目 <code>dts/bindings/</code> 下自己写 YAML：</p>
+          <pre><code># &lt;project&gt;/dts/bindings/my-company,my-sensor.yaml
+description: My custom sensor
+compatible: "my-company,my-sensor"
+include: [i2c-device.yaml]
+
+properties:
+  my,range:
+    type: int
+    default: 1000
+  rdy-gpios:
+    type: phandle-array</code></pre>
+          <p>驱动中用 <code>DT_PROP()</code> 宏读取这些属性值。</p>
+
+          <div class="tags"><span class="tag">devicetree</span><span class="tag">bindings</span><span class="tag">SPI</span><span class="tag">I²C</span><span class="tag">CAN</span><span class="tag">compatible</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
