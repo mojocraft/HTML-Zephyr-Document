@@ -634,6 +634,56 @@ led_0 {                         // ← 没有 @address
         </div>
       </div>
 
+
+      <div class="qa-card" data-topics="fundamentals devicetree gpio" id="qa-fund-6">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">st,stm32-gpio.yaml 中的属性值（pin、flags 等）应该去哪里找？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p>Binding 文件只定义"有哪些属性"，但<strong>属性的具体值要去三个地方找</strong>：</p>
+
+          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
+            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">属性</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">值来源</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">具体文件</th></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">reg</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC 内存映射</td><td style="padding:6px 10px; border:1px solid #dee2e6;">dts/arm/stm32/stm32f407.dtsi</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">clocks</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC 时钟树</td><td style="padding:6px 10px; border:1px solid #dee2e6;">dts/arm/stm32/stm32f407.dtsi</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">pin</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC dtsi 中定义的 GPIO 引脚</td><td style="padding:6px 10px; border:1px solid #dee2e6;">boards/ 下的 dts + dts/arm/stm32/ 下的 dtsi</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">flags</td><td style="padding:6px 10px; border:1px solid #dee2e6;">dt-bindings 宏定义</td><td style="padding:6px 10px; border:1px solid #dee2e6;">include/zephyr/dt-bindings/gpio/gpio.h</td></tr>
+          </table>
+
+          <p><strong>flags 常用宏（gpio.h）：</strong></p>
+          <pre><code>// 逻辑电平
+#define GPIO_ACTIVE_HIGH  0    // 高电平有效
+#define GPIO_ACTIVE_LOW   1    // 低电平有效
+
+// 上下拉
+#define GPIO_PULL_UP      2    // 上拉
+#define GPIO_PULL_DOWN    4    // 下拉
+
+// 驱动能力
+#define GPIO_OPEN_DRAIN   8    // 开漏输出
+#define GPIO_OPEN_SOURCE  16   // 开源输出
+
+// 组合使用
+gpios = &lt;&amp;gpioc 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)&gt;;</code></pre>
+
+          <p><strong>完整查找流程：</strong></p>
+          <pre><code>你要写：gpios = &lt;&amp;gpioa 5 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)&gt;;
+                       │   │       └──────────────────────┘
+                       │   │                ↑
+                       │   │      gpio.h → 宏定义，用 | 组合
+                       │   │
+                       │   └── stm32f407.dtsi → 这个口有 0-15
+                       │
+                       └── stm32f407.dtsi → &amp;gpioa 存在</code></pre>
+
+          <p><strong>一句话：</strong>属性结构看 binding YAML，属性值看 dts/dtsi（硬件资源）+ 头文件（宏常量）。</p>
+
+          <div class="tags"><span class="tag">binding</span><span class="tag">GPIO</span><span class="tag">devicetree</span><span class="tag">dt-bindings</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
