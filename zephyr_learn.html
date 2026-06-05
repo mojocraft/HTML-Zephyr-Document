@@ -117,6 +117,10 @@
   main h2:hover {
     transform: translateY(-5px) scale(1.02);
   }
+  /* 深色模式下 hover 标题时文字变深色，保证可读性 */
+  [data-theme="dark"] main h2:hover {
+    color: #1e293b;
+  }
   main h2 .icon {
     width: 32px; height: 32px; border-radius: 7px;
     display: inline-flex; align-items: center; justify-content: center;
@@ -3062,9 +3066,9 @@ function collapseAll() {
 // ── 日间/夜间模式切换 ──
 (function initTheme() {
   const btn = document.getElementById('themeToggle');
-  const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const saved = localStorage.getItem('zephyr-learn-theme');
-  if ((saved || (prefers ? 'dark' : 'light')) === 'dark') {
+  // 默认夜间，除非用户手动选过日间
+  if (saved !== 'light') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
   btn.addEventListener('click', () => {
