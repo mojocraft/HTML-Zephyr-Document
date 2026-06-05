@@ -23,6 +23,7 @@
     --accent-timer: #be185d;
     --accent-dma: #1d4ed8;
     --accent-thread: #b45309;
+    --accent-kernel: #0d9488;
     --code-bg: #f1f5f9;
     --card-hover-bg: #fafbfc;
     --h2-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -112,6 +113,7 @@
   .topic-timer       h2:hover { border-color: var(--accent-timer);  box-shadow: 0 12px 32px rgba(190,24,93,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
   .topic-dma         h2:hover { border-color: var(--accent-dma);    box-shadow: 0 12px 32px rgba(29,78,216,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   .topic-thread      h2:hover { border-color: var(--accent-thread); box-shadow: 0 12px 32px rgba(180,83,9,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+  .topic-kernel      h2:hover { border-color: var(--accent-kernel); box-shadow: 0 12px 32px rgba(13,148,136,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); }
   .topic-fundamentals h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   .topic-other       h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   main h2:hover {
@@ -139,6 +141,7 @@
   .topic-timer .icon, .icon-timer { background: var(--accent-timer); }
   .topic-dma   .icon, .icon-dma   { background: var(--accent-dma); }
   .topic-thread .icon, .icon-thread { background: var(--accent-thread); }
+  .topic-kernel .icon, .icon-kernel { background: var(--accent-kernel); }
   .topic-fundamentals .icon, .icon-fundamentals { background: var(--primary); }
 
   .topic-section { margin-bottom: 36px; transition: margin-bottom 0.35s ease; }
@@ -188,6 +191,7 @@
   .topic-timer       .qa-card:hover { box-shadow: 0 14px 36px rgba(190,24,93,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-timer); }
   .topic-dma         .qa-card:hover { box-shadow: 0 14px 36px rgba(29,78,216,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-dma); }
   .topic-thread      .qa-card:hover { box-shadow: 0 14px 36px rgba(180,83,9,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-thread); }
+  .topic-kernel      .qa-card:hover { box-shadow: 0 14px 36px rgba(13,148,136,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-kernel); }
   .topic-fundamentals .qa-card:hover { box-shadow: 0 14px 36px rgba(37,99,235,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary); }
 
   /* 用父级 topic 给同 section 内的卡片着色 — 边条 + 标记 + 箭头 */
@@ -211,6 +215,8 @@
   .topic-dma         .qa-card .q .marker { background: var(--accent-dma); }
   .topic-thread      .qa-card::before { background: var(--accent-thread); }
   .topic-thread      .qa-card .q .marker { background: var(--accent-thread); }
+  .topic-kernel      .qa-card::before { background: var(--accent-kernel); }
+  .topic-kernel      .qa-card .q .marker { background: var(--accent-kernel); }
   .topic-fundamentals .qa-card::before { background: var(--primary); }
   .topic-fundamentals .qa-card .q .marker { background: var(--primary); }
 
@@ -225,6 +231,7 @@
   .topic-timer       .qa-card.open .q .arrow { background: #fce7f3; color: var(--accent-timer); }
   .topic-dma         .qa-card.open .q .arrow { background: #dbeafe; color: var(--accent-dma); }
   .topic-thread      .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-thread); }
+  .topic-kernel      .qa-card.open .q .arrow { background: #ccfbf1; color: var(--accent-kernel); }
   .topic-fundamentals .qa-card.open .q .arrow { background: #dbeafe; color: var(--primary); }
 
   .qa-card .q {
@@ -885,6 +892,7 @@
     <button class="btn" onclick="filterBy('dma')" data-filter="dma">DMA</button>
     <button class="btn" onclick="filterBy('fundamentals')" data-filter="fundamentals">基础</button>
     <button class="btn" onclick="filterBy('thread')" data-filter="thread">线程</button>
+    <button class="btn" onclick="filterBy('kernel')" data-filter="kernel">同步</button>
   </div>
 
   <div class="stats-bar" id="statsBar"></div>
@@ -3327,6 +3335,359 @@ k_work_schedule(&amp;my_work, K_MSEC(100));  /* 100ms 后执行 */</code></pre>
           </div>
 
           <div class="tags"><span class="tag">信号量</span><span class="tag">互斥锁</span><span class="tag">消息队列</span><span class="tag">工作队列</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ 内核同步机制 ═══════════ -->
+  <section class="topic-section topic-kernel" data-topic="kernel" id="sec-kernel">
+    <h2><span class="icon icon-kernel">K</span> 内核同步机制</h2>
+    <div class="qa-list">
+
+      <!-- KERNEL-1: 信号量 -->
+      <div class="qa-card" data-topics="kernel" id="qa-kernel-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">信号量 (k_sem) 怎么用？计数信号量和二值信号量有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <pre><code>struct k_sem {
+    _wait_q_t wait_q;       /* 等待队列             */
+    unsigned int count;     /* 当前计数             */
+    unsigned int limit;     /* 最大计数（信号量上限） */
+};
+
+#define MY_SEM_INIT_COUNT  0   /* 初始计数            */
+#define MY_SEM_MAX_COUNT   3   /* 最大计数（0=二值）   */
+
+K_SEM_DEFINE(my_sem, MY_SEM_INIT_COUNT, MY_SEM_MAX_COUNT);</code></pre>
+
+          <table class="props">
+            <thead><tr><th>API</th><th>作用</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>k_sem_take(&amp;sem, timeout)</code></td><td>获取信号量</td><td>count--；若 count=0 则阻塞至超时</td></tr>
+              <tr><td><code>k_sem_give(&amp;sem)</code></td><td>释放信号量</td><td>count++；唤醒一个等待者</td></tr>
+              <tr><td><code>k_sem_reset(&amp;sem)</code></td><td>重置 count 为 0</td><td>不唤醒等待者</td></tr>
+              <tr><td><code>k_sem_count_get(&amp;sem)</code></td><td>读取当前 count</td><td>可在 ISR 中使用</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>典型场景一：ISR 通知线程（二值信号量）</strong></p>
+          <pre><code>K_SEM_DEFINE(data_ready, 0, 1);  /* 二值信号量 — limit=1 */
+
+void isr_handler(const void *arg) {
+    k_sem_give(&amp;data_ready);       /* ISR 中释放 */
+}
+
+void worker_thread(void) {
+    while (1) {
+        k_sem_take(&amp;data_ready, K_FOREVER);  /* 等待数据就绪 */
+        process_data();
+    }
+}</code></pre>
+
+          <p><strong>典型场景二：资源计数（计数信号量）</strong></p>
+          <pre><code>K_SEM_DEFINE(pool, 5, 5);   /* 5 个可用资源 */
+
+k_sem_take(&amp;pool, K_FOREVER);  /* 占用一个，count → 4 */
+use_resource();
+k_sem_give(&amp;pool);             /* 归还，count → 5 */</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>ISR 中只能用 <code>k_sem_give()</code></strong>，不能用 <code>k_sem_take()</code>（会阻塞）。</span>
+          </div>
+
+          <div class="tags"><span class="tag">k_sem</span><span class="tag">信号量</span><span class="tag">ISR</span><span class="tag">同步</span></div>
+        </div>
+      </div>
+
+      <!-- KERNEL-2: 互斥锁 -->
+      <div class="qa-card" data-topics="kernel" id="qa-kernel-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">互斥锁 (k_mutex) 怎么用？和信号量有什么区别？优先级继承是什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <pre><code>K_MUTEX_DEFINE(my_mutex);
+
+k_mutex_lock(&amp;mu, K_FOREVER);    /* 获取锁，阻塞到成功 */
+/* ... 临界区 ... */
+k_mutex_unlock(&amp;mu);             /* 释放锁            */
+
+k_mutex_lock(&amp;mu, K_MSEC(100));  /* 带超时             */
+if (ret == -EAGAIN) { /* 超时未获得锁 */ }</code></pre>
+
+          <p><strong>互斥锁 vs 信号量：</strong></p>
+          <table class="props">
+            <thead><tr><th>特性</th><th>互斥锁 (k_mutex)</th><th>信号量 (k_sem)</th></tr></thead>
+            <tbody>
+              <tr><td>所有权</td><td>有 — lock 的线程才能 unlock</td><td>无 — 任何人都能 give</td></tr>
+              <tr><td>优先级继承</td><td>支持</td><td>不支持</td></tr>
+              <tr><td>递归锁</td><td>不支持（不能重复 lock）</td><td>N/A</td></tr>
+              <tr><td>ISR 使用</td><td>不允许</td><td>允许 give（不能 take）</td></tr>
+              <tr><td>典型用途</td><td>保护共享数据</td><td>事件通知 / 资源计数</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>优先级继承 — 防止优先级反转：</strong></p>
+          <pre><code>/* 场景：低优先线程持有锁，高优先线程等锁                */
+/* 无优先级继承：中优先线程抢占低优先线程，高优等很久       */
+/* 有优先级继承：低优先线程临时提升到高优先级，快速释放锁   */
+
+/* Zephyr 的 k_mutex 自动做优先级继承，无需额外配置 */</code></pre>
+
+          <div class="callout warn">
+            <span class="callout-icon">&#9888;&#65039;</span>
+            <span><strong>互斥锁必须在<线程上下文>中使用</strong>，不能在 ISR 中 lock/unlock。</span>
+          </div>
+
+          <div class="tags"><span class="tag">k_mutex</span><span class="tag">互斥锁</span><span class="tag">优先级继承</span></div>
+        </div>
+      </div>
+
+      <!-- KERNEL-3: 消息队列 -->
+      <div class="qa-card" data-topics="kernel" id="qa-kernel-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">消息队列 (k_msgq) 怎么用？和 FIFO 有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>消息队列 — 固定大小消息，适合值传递和指针传递：</strong></p>
+          <pre><code>struct msg {
+    uint32_t id;
+    uint8_t  data[16];
+};
+
+/* 最多 10 条消息，每条 sizeof(struct msg) */
+K_MSGQ_DEFINE(my_msgq, sizeof(struct msg), 10, 4);
+
+/* 发送（ISR 安全） */
+struct msg m = { .id = 1, .data = {0x01, 0x02} };
+k_msgq_put(&amp;my_msgq, &amp;m, K_NO_WAIT);    /* 非阻塞            */
+k_msgq_put(&amp;my_msgq, &amp;m, K_FOREVER);    /* 阻塞到有空位       */
+
+/* 接收 */
+struct msg rx;
+k_msgq_get(&amp;my_msgq, &amp;rx, K_FOREVER);   /* 阻塞到有消息       */
+k_msgq_get(&amp;my_msgq, &amp;rx, K_MSEC(100)); /* 带超时             */
+
+/* 查看队首但不取出 */
+k_msgq_peek(&amp;my_msgq, &amp;rx);</code></pre>
+
+          <p><strong>消息队列 vs FIFO：</strong></p>
+          <table class="props">
+            <thead><tr><th>特性</th><th>k_msgq</th><th>k_fifo</th></tr></thead>
+            <tbody>
+              <tr><td>消息大小</td><td>固定，编译时确定</td><td>不固定，任意大小</td></tr>
+              <tr><td>内存管理</td><td>环形缓冲区，预分配</td><td>链表节点，动态分配</td></tr>
+              <tr><td>数据传递</td><td>值拷贝</td><td>指针传递</td></tr>
+              <tr><td>ISR 安全</td><td>是 (put only)</td><td>是 (put only)</td></tr>
+              <tr><td>适用场景</td><td>小数据量、固定格式</td><td>大数据量、变长数据</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">k_msgq</span><span class="tag">消息队列</span><span class="tag">k_fifo</span></div>
+        </div>
+      </div>
+
+      <!-- KERNEL-4: 事件 -->
+      <div class="qa-card" data-topics="kernel" id="qa-kernel-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">事件 (k_event) 怎么用？和信号量有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>事件 = 32 位掩码 + 等待条件，是多信号量场景的最佳替代：</strong></p>
+          <pre><code>K_EVENT_DEFINE(my_events);
+
+/* 定义事件位 */
+#define EVT_UART_RX    BIT(0)   /* 0x00000001 */
+#define EVT_SPI_DONE   BIT(1)   /* 0x00000002 */
+#define EVT_TIMER_EXP  BIT(2)   /* 0x00000004 */
+#define EVT_ERROR      BIT(3)   /* 0x00000008 */
+
+/* 发送事件（ISR 安全） */
+k_event_post(&amp;my_events, EVT_UART_RX);
+k_event_set(&amp;my_events, EVT_UART_RX);           /* 同 post       */
+k_event_set(&amp;my_events, EVT_UART_RX | EVT_ERROR); /* 一次发多个 */</code></pre>
+
+          <p><strong>等待事件 — 三种模式：</strong></p>
+          <pre><code>/* 模式一：等待任意一个事件（OR） */
+uint32_t evts = k_event_wait(&amp;my_events,
+    EVT_UART_RX | EVT_SPI_DONE,  /* 感兴趣的事件            */
+    false,                        /* false=OR, true=AND     */
+    K_MSEC(500));                 /* 超时                    */
+if (evts &amp; EVT_UART_RX) { /* UART 数据到了 */ }
+
+/* 模式二：等待所有事件（AND） */
+evts = k_event_wait(&amp;my_events,
+    EVT_UART_RX | EVT_SPI_DONE,
+    true,                         /* AND — 全部满足才返回    */
+    K_FOREVER);
+
+/* 模式三：等待后自动清除 */
+evts = k_event_wait(&amp;my_events,
+    EVT_UART_RX, false, K_FOREVER);
+/* 返回时 EVT_UART_RX 位被自动清除 */</code></pre>
+
+          <p><strong>事件 vs 信号量：</strong></p>
+          <table class="props">
+            <thead><tr><th>场景</th><th>信号量</th><th>事件</th></tr></thead>
+            <tbody>
+              <tr><td>单一事件通知</td><td>✓ 简单直接</td><td>✓ 一样简单</td></tr>
+              <tr><td>等待多个事件任一</td><td>✗ 需要多个信号量 + k_poll</td><td>✓ 一个 k_event_wait(OR)</td></tr>
+              <tr><td>等待多个事件全部</td><td>✗ 不可行</td><td>✓ k_event_wait(AND)</td></tr>
+              <tr><td>计数功能</td><td>✓ 可以</td><td>✗ 不支持</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">k_event</span><span class="tag">事件</span><span class="tag">bitmask</span></div>
+        </div>
+      </div>
+
+      <!-- KERNEL-5: k_poll -->
+      <div class="qa-card" data-topics="kernel" id="qa-kernel-5">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">k_poll 怎么用？一个线程如何同时等待多个不同类型的内核对象？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>k_poll 可以同时等待信号量、FIFO、消息队列、socket 等多种对象：</strong></p>
+          <pre><code>K_SEM_DEFINE(uart_sem, 0, 1);
+K_MSGQ_DEFINE(can_msgq, sizeof(struct can_msg), 16, 4);
+
+/* 同时等待信号量和消息队列 */
+struct k_poll_event events[2] = {
+    K_POLL_EVENT_SEM_INITIALIZER(K_POLL_SEM_TYPE_SEM_AVAILABLE,
+                                  K_POLL_MODE_NOTIFY_ONLY,
+                                  &amp;uart_sem),
+    K_POLL_EVENT_MSGQ_INITIALIZER(K_POLL_MODE_NOTIFY_ONLY,
+                                   &amp;can_msgq),
+};
+
+void monitor_thread(void) {
+    while (1) {
+        int ret = k_poll(events, 2, K_FOREVER);
+        if (ret != 0) continue;  /* -EAGAIN 表示超时 */
+
+        if (events[0].state == K_POLL_STATE_SEM_AVAILABLE) {
+            k_sem_take(&amp;uart_sem, K_NO_WAIT);
+            process_uart();
+        }
+        if (events[1].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
+            struct can_msg msg;
+            k_msgq_get(&amp;can_msgq, &amp;msg, K_NO_WAIT);
+            process_can(msg);
+        }
+
+        /* 重置事件状态，准备下一轮 */
+        k_poll_signal_reset(&amp;events[0]);
+        k_poll_signal_reset(&amp;events[1]);
+    }
+}</code></pre>
+
+          <p><strong>k_poll 支持的对象类型：</strong></p>
+          <table class="props">
+            <thead><tr><th>对象</th><th>初始化宏</th><th>触发条件</th></tr></thead>
+            <tbody>
+              <tr><td>信号量</td><td><code>K_POLL_EVENT_SEM_INITIALIZER</code></td><td>count &gt; 0</td></tr>
+              <tr><td>消息队列</td><td><code>K_POLL_EVENT_MSGQ_INITIALIZER</code></td><td>非空</td></tr>
+              <tr><td>FIFO</td><td><code>K_POLL_EVENT_FIFO_INITIALIZER</code></td><td>非空</td></tr>
+              <tr><td>Socket</td><td><code>K_POLL_EVENT_SOCKET_INITIALIZER</code></td><td>可读写</td></tr>
+              <tr><td>信号 (k_poll_signal)</td><td><code>K_POLL_EVENT_SIGNAL_INITIALIZER</code></td><td>被 raise</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>k_poll_signal — 纯软件触发（不需要真实内核对象）：</strong></p>
+          <pre><code>struct k_poll_signal sig;
+k_poll_signal_init(&amp;sig);
+
+struct k_poll_event evt = K_POLL_EVENT_INITIALIZER(
+    K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &amp;sig);
+
+k_poll(&amp;evt, 1, K_FOREVER);
+/* 另一个地方 */
+k_poll_signal_raise(&amp;sig, 1);   /* 触发等待 */</code></pre>
+
+          <div class="tags"><span class="tag">k_poll</span><span class="tag">多路复用</span><span class="tag">poll</span></div>
+        </div>
+      </div>
+
+      <!-- KERNEL-6: 工作队列 -->
+      <div class="qa-card" data-topics="kernel" id="qa-kernel-6">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">工作队列 (k_work) 怎么用？延迟工作和系统工作队列有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>工作队列 — 把耗时操作从 ISR 推迟到线程上下文执行：</strong></p>
+
+          <pre><code>/* —— 普通工作（一次性）—— */
+struct k_work my_work;
+
+void work_handler(struct k_work *work) {
+    /* 在系统工作队列线程中执行，可以 sleep */
+    k_msleep(100);
+    do_heavy_processing();
+}
+
+k_work_init(&amp;my_work, work_handler);
+k_work_submit(&amp;my_work);  /* 提交到系统工作队列 */
+
+/* —— 延迟工作（定时触发）—— */
+struct k_work_delayable delayed_work;
+
+k_work_init_delayable(&amp;delayed_work, handler);
+k_work_schedule(&amp;delayed_work, K_MSEC(100)); /* 100ms 后执行  */
+k_work_schedule(&amp;delayed_work, K_SECONDS(1)); /* 1s 后执行    */
+k_work_cancel_delayable(&amp;delayed_work);       /* 取消未执行的  */
+
+/* —— 重新调度（周期性）—— */
+void periodic_handler(struct k_work *work) {
+    do_periodic_task();
+    struct k_work_delayable *dwork =
+        k_work_delayable_from_work(work);
+    k_work_schedule(dwork, K_MSEC(500)); /* 500ms 后再执行 */
+}</code></pre>
+
+          <p><strong>系统工作队列 vs 自定义工作队列：</strong></p>
+          <table class="props">
+            <thead><tr><th>特性</th><th>系统工作队列</th><th>自定义工作队列</th></tr></thead>
+            <tbody>
+              <tr><td>栈大小</td><td>CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE</td><td>自定义</td></tr>
+              <tr><td>优先级</td><td>CONFIG_SYSTEM_WORKQUEUE_PRIORITY</td><td>自定义</td></tr>
+              <tr><td>适用场景</td><td>一般延迟处理</td><td>需要独立优先级/隔离</td></tr>
+              <tr><td>提交方式</td><td><code>k_work_submit()</code></td><td><code>k_work_submit_to_queue()</code></td></tr>
+            </tbody>
+          </table>
+
+          <pre><code>/* 自定义工作队列 */
+#define MY_WQ_STACK 1024
+#define MY_WQ_PRIO  5
+
+K_THREAD_STACK_DEFINE(my_wq_stack, MY_WQ_STACK);
+struct k_work_q my_wq;
+
+k_work_queue_start(&amp;my_wq, my_wq_stack,
+                   K_THREAD_STACK_SIZEOF(my_wq_stack),
+                   MY_WQ_PRIO, NULL);
+k_work_submit_to_queue(&amp;my_wq, &amp;my_work);</code></pre>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span>ISR 中<strong>只做必要的事情</strong>（清中断标志、给信号量），真正的数据处理丢给工作队列。这是嵌入式 RTOS 的黄金法则。</span>
+          </div>
+
+          <div class="tags"><span class="tag">k_work</span><span class="tag">工作队列</span><span class="tag">ISR</span><span class="tag">延迟处理</span></div>
         </div>
       </div>
 
