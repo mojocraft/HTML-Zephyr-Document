@@ -355,6 +355,71 @@
         </div>
       </div>
 
+
+      <div class="qa-card" data-topics="fundamentals gpio" id="qa-fund-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">简单设备（LED/按键）用 gpios，复杂外设（UART/CAN）用 pinctrl-0，能否这样理解？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>这个理解完全正确。</strong>区分规则如下：</p>
+
+          <pre><code>简单设备（LED/按键）：      复杂外设（UART/CAN/I²C）：
+
+devicetree 里写 gpios       devicetree 里写 pinctrl-0
+      ↓                            ↓
+GPIO 驱动自动 pinctrl       手动指定 AF/pinmux
+      ↓                            ↓
+gpio_pin_set() /             uart_tx() / can_send()
+gpio_pin_interrupt()</code></pre>
+
+          <p><strong>为什么简单设备不需要 pinctrl-0？</strong></p>
+          <p><code>gpios</code> 属性本身就会触发 Zephyr 的 GPIO 驱动去自动配置引脚为 GPIO 模式。GPIO 是所有引脚最"原始"的功能，不需要额外的 Alternate Function 选择（或者说默认 AF 就是 GPIO），所以不需要手动写 pinctrl。</p>
+
+          <p><strong>具体在 devicetree 中的写法对比：</strong></p>
+          <pre><code>/* LED：简单 GPIO 设备，只需要 gpios */
+/ {
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+            label = "Green LED";
+        };
+    };
+};
+
+/* 按键：同样只需要 gpios */
+/ {
+    buttons {
+        compatible = "gpio-keys";
+        button0: button_0 {
+            gpios = &lt;&amp;gpioc 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)&gt;;
+            label = "User Button";
+        };
+    };
+};
+
+/* UART：复杂外设，需要 pinctrl-0 */
+&amp;usart1 {
+    pinctrl-0 = &lt;&amp;usart1_tx_pb6 &amp;usart1_rx_pb7&gt;;
+    pinctrl-names = "default";
+    status = "okay";
+};</code></pre>
+
+          <p><strong>判断标准：</strong></p>
+          <ul>
+            <li>你只需要高低电平、读输入状态 → <code>gpios</code> 就够了</li>
+            <li>你需要通信协议（串口/CAN/SPI/I²C）→ 必须 <code>pinctrl-0</code> + pinmux</li>
+            <li>中间地带：PWM 有时通过 GPIO 模拟，有时是硬件 PWM 控制器，后者也需要 pinctrl</li>
+          </ul>
+
+          <p><strong>ESP32 的例外：</strong>ESP32 因为有 GPIO Matrix，即使复杂外设也常用 <code>tx-pin</code>/<code>rx-pin</code> 这种简化写法替代显式 pinctrl。但 STM32 几乎没有例外 — 非 GPIO 功能就必须写 pinctrl。</p>
+
+          <div class="tags"><span class="tag">gpios</span><span class="tag">pinctrl</span><span class="tag">devicetree</span><span class="tag">STM32</span><span class="tag">ESP32</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
