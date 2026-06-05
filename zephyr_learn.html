@@ -569,6 +569,71 @@ solomon     Solomon Systech   ← SSD1306 的厂商</code></pre>
         </div>
       </div>
 
+
+      <div class="qa-card" data-topics="fundamentals devicetree" id="qa-fund-5">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">设备树中节点标签后的 @address 和 reg 属性是什么关系？有 @xx 就必须有 reg 吗？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>核心规则：节点名中的 @xxxx（unit-address）必须和 reg 属性的第一个值完全一致，否则编译报错。</strong></p>
+
+          <pre><code>bme280@76 {          // @76 是 unit-address
+    reg = &lt;0x76&gt;;    // reg 的第一个值必须是 76
+};
+
+// 错误示范 — 编译报错！
+bme280@76 {
+    reg = &lt;0x3c&gt;;    // @76 和 reg 不匹配</code></pre>
+
+          <p><strong>reg 的格式取决于总线类型（由父节点的 #address-cells 决定）：</strong></p>
+          <pre><code>// I²C：地址是单个值（7-bit 地址）
+&amp;i2c0 {                        // #address-cells = &lt;1&gt;;
+    ssd1306@3c {
+        reg = &lt;0x3c&gt;;          // @3c 必须等于 0x3c
+    };
+};
+
+// SPI：地址是片选编号
+&amp;spi1 {                        // #address-cells = &lt;1&gt;;
+    bme280@0 {
+        reg = &lt;0&gt;;             // CS0，@0 必须等于 0
+    };
+};
+
+// 内存映射设备：多个值
+&amp;flash0 {                      // #address-cells = &lt;1&gt;; #size-cells = &lt;1&gt;;
+    partitions@8000 {          // @8000 是起始地址
+        reg = &lt;0x8000 0x1000&gt;; // &lt;起始地址 大小&gt;，第一个值 = 0x8000
+    };
+};</code></pre>
+
+          <p><strong>什么时候不需要 reg？</strong></p>
+          <p>如果一个设备不是通过总线地址寻址的，就不需要 @address 和 reg：</p>
+          <pre><code>// LED：用 gpios 寻址，不是总线地址 — 不需要 reg
+led_0 {                         // ← 没有 @address
+    gpios = &lt;&amp;gpioa 5 0&gt;;
+};
+
+// 但如果 LED 挂在 I²C GPIO 扩展器上 — 就需要 reg
+&amp;pcf8574 {                      // I²C GPIO 扩展器
+    led@3 {                     // @3 = 第 3 号扩展 GPIO
+        reg = &lt;3&gt;;              // 这里就需要 reg
+    };
+};</code></pre>
+
+          <p><strong>规则总结：</strong></p>
+          <ul>
+            <li>有 @address → 必须有 reg，且 reg 第一个值 == @ 的值</li>
+            <li>无 @address → 不需要 reg</li>
+            <li>reg 的格式（几个值、各什么含义）由父节点的 #address-cells 和 #size-cells 决定</li>
+          </ul>
+
+          <div class="tags"><span class="tag">devicetree</span><span class="tag">reg</span><span class="tag">unit-address</span><span class="tag">#address-cells</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
