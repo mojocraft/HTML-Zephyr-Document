@@ -23,7 +23,6 @@
     --accent-timer: #be185d;
     --accent-dma: #1d4ed8;
     --accent-thread: #b45309;
-    --accent-default: #2563eb;
     --code-bg: #f1f5f9;
     --shadow: 0 1px 3px rgba(0,0,0,0.08);
     --radius: 8px;
@@ -52,66 +51,38 @@
     overflow-y: auto;
     flex-shrink: 0;
   }
-  nav h1 {
-    font-size: 1.15rem;
-    margin-bottom: 6px;
-    color: var(--primary);
-  }
-  nav .subtitle {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-  }
+  nav h1 { font-size: 1.15rem; margin-bottom: 6px; color: var(--primary); }
+  nav .subtitle { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; }
   nav input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.88rem;
-    margin-bottom: 16px;
-    outline: none;
+    width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 0.88rem; margin-bottom: 16px; outline: none;
     transition: border-color 0.2s;
   }
   nav input:focus { border-color: var(--primary); }
   nav .toc { list-style: none; }
   nav .toc li { margin-bottom: 2px; }
   nav .toc a {
-    display: block;
-    padding: 6px 10px;
-    border-radius: 5px;
-    font-size: 0.88rem;
-    color: var(--text);
-    text-decoration: none;
+    display: block; padding: 6px 10px; border-radius: 5px;
+    font-size: 0.88rem; color: var(--text); text-decoration: none;
     transition: background 0.15s;
   }
   nav .toc a:hover { background: var(--primary-light); }
   nav .toc a .badge {
-    float: right;
-    font-size: 0.72rem;
-    background: var(--border);
-    color: var(--text-secondary);
-    padding: 1px 6px;
-    border-radius: 10px;
+    float: right; font-size: 0.72rem; background: var(--border);
+    color: var(--text-secondary); padding: 1px 6px; border-radius: 10px;
   }
 
   /* ── 主内容区 ── */
   main {
-    flex: 1;
-    padding: 28px 36px;
-    max-width: 960px;
+    flex: 1; padding: 28px 36px; max-width: 960px;
   }
   main h2 {
-    font-size: 1.5rem;
-    margin-bottom: 16px;
-    padding-bottom: 6px;
+    font-size: 1.5rem; margin-bottom: 16px; padding-bottom: 6px;
     border-bottom: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
   }
   main h2 .icon {
-    width: 24px; height: 24px;
-    border-radius: 4px;
+    width: 24px; height: 24px; border-radius: 4px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 13px; color: #fff;
   }
@@ -133,47 +104,22 @@
 
   /* ── 问答卡片 ── */
   .qa-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 12px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 12px;
+    box-shadow: var(--shadow); overflow: hidden;
   }
   .qa-card .q {
-    padding: 14px 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    user-select: none;
+    padding: 14px 18px; cursor: pointer; display: flex;
+    align-items: flex-start; gap: 10px; user-select: none;
     transition: background 0.15s;
   }
   .qa-card .q:hover { background: #fafbfc; }
-  .qa-card .q .marker {
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 1rem;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-  .qa-card .q .text {
-    flex: 1;
-    font-weight: 500;
-  }
-  .qa-card .q .arrow {
-    color: var(--text-secondary);
-    transition: transform 0.25s;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
+  .qa-card .q .marker { color: var(--primary); font-weight: 700; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  .qa-card .q .text { flex: 1; font-weight: 500; }
+  .qa-card .q .arrow { color: var(--text-secondary); transition: transform 0.25s; font-size: 0.85rem; flex-shrink: 0; margin-top: 2px; }
   .qa-card.open .q .arrow { transform: rotate(90deg); }
   .qa-card .a {
-    display: none;
-    padding: 0 18px 16px 42px;
-    color: #374151;
-    font-size: 0.93rem;
+    display: none; padding: 0 18px 16px 42px; color: #374151; font-size: 0.93rem;
   }
   .qa-card.open .a { display: block; }
   .qa-card .a p { margin-bottom: 8px; }
@@ -182,60 +128,242 @@
 
   /* 代码块 */
   pre {
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    padding: 12px 16px;
-    overflow-x: auto;
-    font-size: 0.84rem;
-    line-height: 1.5;
-    margin: 8px 0;
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 12px 16px; overflow-x: auto;
+    font-size: 0.84rem; line-height: 1.5; margin: 8px 0;
   }
   code {
     font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
     font-size: 0.84rem;
   }
   :not(pre) > code {
-    background: var(--code-bg);
-    padding: 1px 5px;
-    border-radius: 3px;
+    background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
     color: #c7254e;
   }
 
-  /* 标签 */
-  .tags { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+  /* ── 标签 ── */
+  .tags { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
   .tag {
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: var(--primary-light);
-    color: var(--primary);
-    font-weight: 500;
+    font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
+    background: var(--primary-light); color: var(--primary); font-weight: 500;
   }
 
-  /* 按钮 */
-  .btn-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  /* ── 按钮 ── */
+  .btn-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .btn {
-    padding: 5px 14px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--surface);
-    cursor: pointer;
-    font-size: 0.82rem;
-    transition: all 0.15s;
-    color: var(--text);
+    padding: 5px 14px; border: 1px solid var(--border); border-radius: 5px;
+    background: var(--surface); cursor: pointer; font-size: 0.82rem;
+    transition: all 0.15s; color: var(--text);
   }
   .btn:hover { background: var(--primary-light); border-color: var(--primary); }
   .btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
   .no-result {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    display: none;
+    text-align: center; padding: 40px; color: var(--text-secondary);
+    font-size: 0.95rem; display: none;
   }
   .no-result.show { display: block; }
+
+  /* ═══════════════════════════════════════════
+     RICH VISUAL ELEMENTS
+     ═══════════════════════════════════════════ */
+
+  /* ── 层级架构图 ── */
+  .layer-stack {
+    margin: 12px 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .layer {
+    padding: 14px 18px; position: relative;
+    border-left: 4px solid transparent;
+    transition: background 0.2s;
+  }
+  .layer:hover { filter: brightness(0.97); }
+  .layer-top {
+    background: #fef3c7; border-left-color: #f59e0b;
+    border-bottom: 2px dashed #fcd34d;
+  }
+  .layer-mid {
+    background: #dbeafe; border-left-color: #3b82f6;
+    border-bottom: 2px dashed #93c5fd;
+  }
+  .layer-bot {
+    background: #d1fae5; border-left-color: #10b981;
+  }
+  .layer .layer-label {
+    font-weight: 700; font-size: 0.9rem; margin-bottom: 2px;
+  }
+  .layer .layer-desc {
+    font-size: 0.8rem; color: var(--text-secondary);
+  }
+  .layer-num {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 2rem; font-weight: 900; color: rgba(0,0,0,0.06);
+  }
+
+  /* ── 路径流程图 ── */
+  .path-flow {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0; margin: 14px 0;
+  }
+  .path-node {
+    padding: 8px 14px; border-radius: 6px;
+    font-weight: 600; font-size: 0.84rem; text-align: center;
+    white-space: nowrap;
+  }
+  .path-node.device { background: #e0e7ff; color: #3730a3; }
+  .path-node.binding { background: #fef3c7; color: #92400e; }
+  .path-node.source { background: #d1fae5; color: #065f46; }
+  .path-arrow {
+    font-size: 1.2rem; color: var(--text-secondary);
+    padding: 0 6px; font-weight: 700;
+  }
+
+  /* ── 对照流程图（两个分支） ── */
+  .two-paths {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0;
+  }
+  @media (max-width: 640px) { .two-paths { grid-template-columns: 1fr; } }
+  .path-card {
+    border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .path-card-header {
+    padding: 10px 14px; font-weight: 700; font-size: 0.88rem;
+    text-align: center;
+  }
+  .path-card.simple .path-card-header { background: #d1fae5; color: #065f46; }
+  .path-card.complex .path-card-header { background: #dbeafe; color: #1e40af; }
+  .path-card-body { padding: 10px 14px; background: var(--surface); }
+  .path-step {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; font-size: 0.84rem;
+  }
+  .path-step .step-arrow { color: var(--text-secondary); font-size: 0.7rem; }
+  .path-step .step-terminal {
+    padding: 3px 10px; border-radius: 12px;
+    font-weight: 600; font-size: 0.78rem;
+  }
+  .step-term-green { background: #d1fae5; color: #065f46; }
+  .step-term-blue { background: #dbeafe; color: #1e40af; }
+
+  /* ── 三列方法卡片 ── */
+  .method-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin: 14px 0;
+  }
+  @media (max-width: 720px) { .method-cards { grid-template-columns: 1fr; } }
+  .method-card {
+    border-radius: var(--radius); border: 1px solid var(--border);
+    box-shadow: var(--shadow); overflow: hidden; background: var(--surface);
+  }
+  .method-card-header {
+    padding: 10px 14px; font-weight: 700; font-size: 0.84rem;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .method-card:nth-child(1) .method-card-header { background: #fef3c7; color: #92400e; }
+  .method-card:nth-child(2) .method-card-header { background: #dbeafe; color: #1e40af; }
+  .method-card:nth-child(3) .method-card-header { background: #ede9fe; color: #5b21b6; }
+  .method-card-body { padding: 10px 14px; font-size: 0.82rem; }
+  .speed-tag {
+    display: inline-block; padding: 1px 8px; border-radius: 8px;
+    font-size: 0.68rem; font-weight: 600;
+  }
+  .speed-fast { background: #d1fae5; color: #065f46; }
+  .speed-mid  { background: #dbeafe; color: #1e40af; }
+  .speed-slow { background: #ede9fe; color: #5b21b6; }
+
+  /* ── 属性查找流程图 ── */
+  .lookup-flow {
+    display: flex; flex-direction: column; gap: 4px;
+    margin: 14px 0; font-family: "SF Mono", "Fira Code", monospace;
+  }
+  .lookup-row {
+    display: flex; align-items: center; gap: 0;
+    font-size: 0.84rem; line-height: 1.7;
+  }
+  .lookup-label {
+    padding: 4px 10px; border-radius: 4px; font-weight: 600;
+    min-width: 100px; text-align: center; font-size: 0.82rem;
+  }
+  .lookup-arrow-down {
+    text-align: center; color: var(--text-secondary);
+    font-size: 0.9rem; padding: 1px 0;
+  }
+  .lk-device { background: #e0e7ff; color: #3730a3; }
+  .lk-soc    { background: #cffafe; color: #0e7490; }
+  .lk-header { background: #d1fae5; color: #065f46; }
+  .lk-pin    { background: #fce7f3; color: #9d174d; }
+  .lk-flag   { background: #fef3c7; color: #92400e; }
+  .lookup-bracket {
+    color: var(--text-secondary); font-size: 1.1rem;
+    min-width: 20px; text-align: center;
+  }
+
+  /* ── 提示框 ── */
+  .callout {
+    border-radius: 6px; padding: 10px 14px; margin: 10px 0;
+    font-size: 0.86rem; border-left: 4px solid;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .callout.note  { background: #eff6ff; border-color: #3b82f6; }
+  .callout.tip   { background: #f0fdf4; border-color: #10b981; }
+  .callout.warn  { background: #fffbeb; border-color: #f59e0b; }
+  .callout .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── 属性速查表 ── */
+  table.props {
+    width: 100%; border-collapse: collapse; margin: 10px 0;
+    font-size: 0.85rem; border-radius: 6px; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  table.props thead { background: #f1f5f9; }
+  table.props th {
+    padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border);
+    font-weight: 700; font-size: 0.8rem; text-transform: uppercase;
+    letter-spacing: 0.03em; color: var(--text-secondary);
+  }
+  table.props td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+  }
+  table.props tbody tr { transition: background 0.15s; }
+  table.props tbody tr:hover { background: #fafbfc; }
+  table.props tbody tr:last-child td { border-bottom: none; }
+
+  /* ── 对比表 ── */
+  .compare-grid {
+    display: grid; grid-template-columns: auto 1fr 1fr;
+    gap: 0; margin: 12px 0; border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    font-size: 0.85rem; box-shadow: var(--shadow);
+  }
+  .compare-grid > * { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  .compare-grid .cg-head {
+    background: #f1f5f9; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.03em; font-size: 0.78rem; color: var(--text-secondary);
+  }
+  .compare-grid .cg-label { font-weight: 600; background: #fafbfc; }
+  .compare-grid .cg-stm32 { border-left: 3px solid #3b82f6; }
+  .compare-grid .cg-esp32 { border-left: 3px solid #10b981; }
+  .compare-grid .cg-foot {
+    grid-column: 1 / -1; border-bottom: none;
+    background: #fafbfc; font-size: 0.8rem; color: var(--text-secondary);
+  }
+
+  /* ── 规则框 ── */
+  .rule-box {
+    border: 2px solid var(--primary); border-radius: var(--radius);
+    padding: 14px 18px; margin: 12px 0;
+    background: linear-gradient(135deg, #eff6ff 0%, #fafbfc 100%);
+  }
+  .rule-box .rule-title {
+    font-weight: 700; color: var(--primary); margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  .rule-box ul { margin: 0; padding-left: 18px; }
+  .rule-box li { margin-bottom: 3px; font-size: 0.86rem; }
 
   /* 响应式 */
   @media (max-width: 768px) {
@@ -250,7 +378,6 @@
 </head>
 <body>
 
-<!-- ════════════════ 侧边栏 ════════════════ -->
 <nav>
   <h1>Zephyr RTOS 学习笔记</h1>
   <p class="subtitle">问答归档 · 按主题索引</p>
@@ -258,7 +385,6 @@
   <ul class="toc" id="toc"></ul>
 </nav>
 
-<!-- ════════════════ 主内容 ════════════════ -->
 <main>
 
   <div class="btn-row">
@@ -280,18 +406,12 @@
 
   <div class="no-result" id="noResult">没有匹配的问答，试试其他关键词。</div>
 
-  <!--
-  ════════════════════════════════════════════
-  模板：复制整个 topic-section 块来添加新主题。
-  复制整个 qa-card 块来添加新问答。
-  ════════════════════════════════════════════
-  -->
-
-  <!-- ────────── 基础概念 ────────── -->
+  <!-- ═══════════ 基础概念 ═══════════ -->
   <section class="topic-section topic-gpio" data-topic="fundamentals" id="sec-fundamentals">
     <h2><span class="icon icon-gpio">F</span> 基础概念</h2>
     <div class="qa-list">
 
+      <!-- Q1: pinctrl vs GPIO vs 外设 -->
       <div class="qa-card" data-topics="fundamentals gpio can uart spi i2c" id="qa-fund-1">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
@@ -299,63 +419,58 @@
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>一句话：pinctrl 决定"这个引脚用来干什么"，GPIO 是其中一种"干什么"的选项。</strong></p>
+          <p><strong>一句话：pinctrl 决定"这个引脚用来干什么"，GPIO 是其中一种选项。</strong></p>
 
-          <p><strong>三层架构：</strong></p>
-          <pre><code>┌──────────────────────────────────────┐
-│  外设驱动 (UART/CAN/SPI/I²C)          │  ← 使用引脚，不关心引脚物理细节
-├──────────────────────────────────────┤
-│  pinctrl (pin control)               │  ← 把引脚分配给外设，配置电气属性
-├──────────────────────────────────────┤
-│  GPIO (通用输入输出)                   │  ← 直接操控引脚电平
-└──────────────────────────────────────┘</code></pre>
-          <p>一个物理引脚同一时刻只能做一件事：要么是 UART_TX，要么是 CAN_RX，要么是普通 GPIO。<strong>pinctrl 就是负责做这个选择的</strong>。</p>
+          <div class="layer-stack">
+            <div class="layer layer-top">
+              <span class="layer-num">1</span>
+              <div class="layer-label">外设驱动层 &mdash; UART / CAN / SPI / I&sup2;C</div>
+              <div class="layer-desc">使用引脚通信，不关心引脚的物理细节。调用 <code>uart_tx()</code> / <code>can_send()</code> 即可</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">2</span>
+              <div class="layer-label">pinctrl 层 &mdash; 引脚控制</div>
+              <div class="layer-desc">决定引脚分配给谁、配置电气属性（上下拉、驱动强度）。STM32 这里就是 AF 寄存器</div>
+            </div>
+            <div class="layer layer-bot">
+              <span class="layer-num">3</span>
+              <div class="layer-label">GPIO 层 &mdash; 通用输入输出</div>
+              <div class="layer-desc">最底层的引脚操作。一个引脚同一时刻只能归一层所有</div>
+            </div>
+          </div>
 
-          <p><strong>什么时候需要写 pinctrl？</strong></p>
-          <ul>
-            <li><strong>STM32 — 必须写：</strong>STM32 的引脚功能由 AF（Alternate Function）寄存器决定。用 USART3_TX 必须把对应引脚的 AF 设为 AF7。</li>
-            <li><strong>ESP32-S3 — 通常不需要显式写：</strong>ESP32 有 GPIO Matrix，几乎所有外设信号可以路由到任意 GPIO，驱动内部自动完成路由。只有需要 IO MUX（更低延迟）或特殊电气属性时才手动写。</li>
-            <li><strong>电气属性 — 总是 pinctrl 的职责：</strong>上下拉、驱动强度、压摆率等，无论 STM32 还是 ESP32 都属于 pinctrl 范畴。</li>
-          </ul>
+          <div class="compare-grid">
+            <div class="cg-head" style="grid-column:1">场景</div>
+            <div class="cg-head cg-stm32">STM32</div>
+            <div class="cg-head cg-esp32">ESP32</div>
 
-          <p><strong>STM32 示例（必须显式 pinctrl）：</strong></p>
-          <pre><code>/* STM32: 必须显式配置 pinctrl */
-&amp;usart3 {
-    pinctrl-0 = &lt;&amp;usart3_tx_pc10 &amp;usart3_rx_pc11&gt;;
-    pinctrl-names = "default";
-};
+            <div class="cg-label">需要 pinctrl？</div>
+            <div class="cg-stm32"><strong>必须写</strong> &mdash; 要设 AF 寄存器</div>
+            <div class="cg-esp32"><strong>通常不需要</strong> &mdash; GPIO Matrix 自动路由</div>
 
-&amp;pinctrl {
-    usart3_tx_pc10: usart3_tx_pc10 {
-        pinmux = &lt;STM32_PINMUX('C', 10, AF7)&gt;;  /* AF7 = USART3_TX */
-    };
-    usart3_rx_pc11: usart3_rx_pc11 {
-        pinmux = &lt;STM32_PINMUX('C', 11, AF7)&gt;;
-    };
-};</code></pre>
+            <div class="cg-label">写法</div>
+            <div class="cg-stm32"><code>pinctrl-0 + STM32_PINMUX('C',10,AF7)</code></div>
+            <div class="cg-esp32"><code>tx-pin = &lt;43&gt;; rx-pin = &lt;44&gt;;</code></div>
 
-          <p><strong>ESP32-S3 示例（通常简化）：</strong></p>
-          <pre><code>/* ESP32-S3: 通常只写这个就够了，驱动内部自动做 pinmux */
-&amp;uart0 {
-    tx-pin = &lt;43&gt;;
-    rx-pin = &lt;44&gt;;
-};</code></pre>
+            <div class="cg-label">电气属性</div>
+            <div class="cg-stm32">也在 pinctrl 节点里写</div>
+            <div class="cg-esp32">在 pinctrl 或直接 <code>bias-pull-up</code></div>
 
-          <p><strong>外设 vs GPIO vs pinctrl 关系总结：</strong></p>
-          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
-            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">层级</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">负责什么</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">STM32</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">ESP32</th></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">pinctrl</td><td style="padding:6px 10px; border:1px solid #dee2e6;">引脚功能选择 + 上下拉/驱动强度</td><td style="padding:6px 10px; border:1px solid #dee2e6;">必须写 pinmux，指定 AF</td><td style="padding:6px 10px; border:1px solid #dee2e6;">驱动自动处理，电气属性可加</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">GPIO</td><td style="padding:6px 10px; border:1px solid #dee2e6;">直接读写引脚、中断</td><td style="padding:6px 10px; border:1px solid #dee2e6;">gpio_pin_set() / gpio_pin_interrupt()</td><td style="padding:6px 10px; border:1px solid #dee2e6;">同左</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">外设</td><td style="padding:6px 10px; border:1px solid #dee2e6;">高层协议操作</td><td style="padding:6px 10px; border:1px solid #dee2e6;">uart_tx() / can_send()</td><td style="padding:6px 10px; border:1px solid #dee2e6;">同左</td></tr>
-          </table>
+            <div class="cg-foot">
+              共同点：无论哪个平台，<code>bias-pull-up</code> / <code>drive-strength</code> / <code>slew-rate</code> 这些电气属性都归 pinctrl 管
+            </div>
+          </div>
 
-          <p><strong>关键约束：</strong>一个引脚的归属链路是 pinctrl 决定它属于谁 → 外设驱动使用它 → 你不能同时拿它当 GPIO。如果 CAN_RX 引脚已经分配给 CAN 控制器，就不能用 gpio_pin_get() 去读它，除非先把引脚从 CAN 断开重新 pinctrl 切回 GPIO 模式。</p>
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span><strong>关键约束：</strong>一个引脚的归属链路是 pinctrl 决定它属于谁 → 外设驱动使用它 → 你不能同时拿它当 GPIO。如果 CAN_RX 已经分配给 CAN 控制器，就不能用 <code>gpio_pin_get()</code> 去读它，除非先 pinctrl 切回 GPIO 模式。</span>
+          </div>
 
           <div class="tags"><span class="tag">pinctrl</span><span class="tag">GPIO</span><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">devicetree</span></div>
         </div>
       </div>
 
-
+      <!-- Q2: gpios vs pinctrl -->
       <div class="qa-card" data-topics="fundamentals gpio" id="qa-fund-2">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
@@ -363,64 +478,53 @@
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>这个理解完全正确。</strong>区分规则如下：</p>
+          <p><strong>完全正确。</strong>区分规则就一句话：</p>
 
-          <pre><code>简单设备（LED/按键）：      复杂外设（UART/CAN/I²C）：
+          <div class="two-paths">
+            <div class="path-card simple">
+              <div class="path-card-header">简单设备 &mdash; LED / 按键</div>
+              <div class="path-card-body">
+                <div class="path-step">
+                  devicetree 写 <code>gpios</code>
+                </div>
+                <div class="path-step">
+                  <span class="step-arrow">▼</span>
+                  GPIO 驱动自动 pinctrl
+                </div>
+                <div class="path-step">
+                  <span class="step-arrow">▼</span>
+                  <span class="step-terminal step-term-green">gpio_pin_set()<br>gpio_pin_interrupt()</span>
+                </div>
+              </div>
+            </div>
+            <div class="path-card complex">
+              <div class="path-card-header">复杂外设 &mdash; UART / CAN / I&sup2;C</div>
+              <div class="path-card-body">
+                <div class="path-step">
+                  devicetree 写 <code>pinctrl-0</code>
+                </div>
+                <div class="path-step">
+                  <span class="step-arrow">▼</span>
+                  手动指定 AF / pinmux
+                </div>
+                <div class="path-step">
+                  <span class="step-arrow">▼</span>
+                  <span class="step-terminal step-term-blue">uart_tx()<br>can_send()</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-devicetree 里写 gpios       devicetree 里写 pinctrl-0
-      ↓                            ↓
-GPIO 驱动自动 pinctrl       手动指定 AF/pinmux
-      ↓                            ↓
-gpio_pin_set() /             uart_tx() / can_send()
-gpio_pin_interrupt()</code></pre>
-
-          <p><strong>为什么简单设备不需要 pinctrl-0？</strong></p>
-          <p><code>gpios</code> 属性本身就会触发 Zephyr 的 GPIO 驱动去自动配置引脚为 GPIO 模式。GPIO 是所有引脚最"原始"的功能，不需要额外的 Alternate Function 选择（或者说默认 AF 就是 GPIO），所以不需要手动写 pinctrl。</p>
-
-          <p><strong>具体在 devicetree 中的写法对比：</strong></p>
-          <pre><code>/* LED：简单 GPIO 设备，只需要 gpios */
-/ {
-    leds {
-        compatible = "gpio-leds";
-        led0: led_0 {
-            gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
-            label = "Green LED";
-        };
-    };
-};
-
-/* 按键：同样只需要 gpios */
-/ {
-    buttons {
-        compatible = "gpio-keys";
-        button0: button_0 {
-            gpios = &lt;&amp;gpioc 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)&gt;;
-            label = "User Button";
-        };
-    };
-};
-
-/* UART：复杂外设，需要 pinctrl-0 */
-&amp;usart1 {
-    pinctrl-0 = &lt;&amp;usart1_tx_pb6 &amp;usart1_rx_pb7&gt;;
-    pinctrl-names = "default";
-    status = "okay";
-};</code></pre>
-
-          <p><strong>判断标准：</strong></p>
-          <ul>
-            <li>你只需要高低电平、读输入状态 → <code>gpios</code> 就够了</li>
-            <li>你需要通信协议（串口/CAN/SPI/I²C）→ 必须 <code>pinctrl-0</code> + pinmux</li>
-            <li>中间地带：PWM 有时通过 GPIO 模拟，有时是硬件 PWM 控制器，后者也需要 pinctrl</li>
-          </ul>
-
-          <p><strong>ESP32 的例外：</strong>ESP32 因为有 GPIO Matrix，即使复杂外设也常用 <code>tx-pin</code>/<code>rx-pin</code> 这种简化写法替代显式 pinctrl。但 STM32 几乎没有例外 — 非 GPIO 功能就必须写 pinctrl。</p>
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>判断标准：</strong>你只需要高低电平/读输入状态 → <code>gpios</code>；你需要通信协议 → <code>pinctrl-0</code> + pinmux。ESP32 是个例外，因为有 GPIO Matrix，复杂外设也常用 <code>tx-pin</code> / <code>rx-pin</code> 简化写法。</span>
+          </div>
 
           <div class="tags"><span class="tag">gpios</span><span class="tag">pinctrl</span><span class="tag">devicetree</span><span class="tag">STM32</span><span class="tag">ESP32</span></div>
         </div>
       </div>
 
-
+      <!-- Q3: 如何确定设备树属性 -->
       <div class="qa-card" data-topics="fundamentals devicetree spi i2c can" id="qa-fund-3">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
@@ -428,98 +532,35 @@ gpio_pin_interrupt()</code></pre>
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>核心方法：每个 compatible 字符串对应一个 YAML 绑定文件，绑定文件里声明了所有合法属性。</strong></p>
+          <p><strong>核心方法：每个 compatible 对应一个 YAML 绑定文件，绑定文件里声明了所有合法属性。</strong></p>
 
-          <p><strong>查找属性的三步法：</strong></p>
-          <ol>
-            <li><strong>确定设备的 compatible</strong> — 如 <code>"st,lis2dh"</code>，这是找到绑定的钥匙</li>
-            <li><strong>找到对应的绑定文件</strong> — 在 <code>zephyr/dts/bindings/</code> 下按厂商/类型组织</li>
-            <li><strong>读 YAML 的 properties</strong> — 还包括 include 继承链中的属性</li>
-          </ol>
+          <div class="path-flow">
+            <span class="path-node device">compatible</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node binding">dts/bindings/*.yaml</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node source">读 properties + include 继承链</span>
+          </div>
 
-          <pre><code>zephyr/dts/bindings/
-├── sensor/
-│   └── st,lis2dh.yaml          ← I²C/SPI 传感器绑定
-├── i2c/
-│   └── i2c-device.yaml          ← 通用 I²C 设备基类
-├── spi/
-│   └── spi-device.yaml          ← 通用 SPI 设备基类
-├── can/
-│   └── bosch,mcan.yaml          ← CAN 控制器绑定
-└── vendor-prefixes.txt</code></pre>
-
-          <p><strong>三种设备对照：</strong></p>
-          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
-            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">设备类型</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">必需属性</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">可选属性</th></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">SPI 传感器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">compatible, reg (CS 片选编号)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">irq-gpios, spi-max-frequency</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">I²C 显示屏</td><td style="padding:6px 10px; border:1px solid #dee2e6;">compatible, reg (I²C 7-bit 地址)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">reset-gpios, dc-gpios, width, height</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">CAN 设备</td><td style="padding:6px 10px; border:1px solid #dee2e6;">compatible (控制器已有绑定)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">bitrate, sample-point, bus-speed</td></tr>
+          <table class="props">
+            <thead><tr><th>设备类型</th><th>必需属性</th><th>可选属性</th><th>reg 含义</th></tr></thead>
+            <tbody>
+              <tr><td>SPI 传感器</td><td>compatible, reg</td><td>irq-gpios, spi-max-frequency</td><td>CS 片选编号</td></tr>
+              <tr><td>I&sup2;C 显示屏</td><td>compatible, reg</td><td>reset-gpios, dc-gpios</td><td>I&sup2;C 7-bit 地址</td></tr>
+              <tr><td>CAN 设备</td><td>compatible (控制器)</td><td>bitrate, sample-point</td><td>N/A — CAN 设备不在 DT 中描述</td></tr>
+            </tbody>
           </table>
 
-          <p><strong>SPI 传感器实例（BME280）：</strong></p>
-          <pre><code>&amp;spi1 {
-    pinctrl-0 = &lt;&amp;spi1_sck_pa5 &amp;spi1_miso_pa6 &amp;spi1_mosi_pa7&gt;;
-    pinctrl-names = "default";
-    status = "okay";
-
-    bme280@0 {
-        compatible = "bosch,bme280";
-        reg = &lt;0&gt;;                       /* CS 片选线 0 */
-        spi-max-frequency = &lt;10000000&gt;;  /* 10 MHz */
-    };
-};</code></pre>
-          <p>SPI 总线上 <code>reg</code> 表示第几根 CS 片选线（不是地址）。</p>
-
-          <p><strong>I²C 显示屏实例（SSD1306）：</strong></p>
-          <pre><code>&amp;i2c0 {
-    pinctrl-0 = &lt;&amp;i2c0_scl_pb6 &amp;i2c0_sda_pb7&gt;;
-    pinctrl-names = "default";
-    status = "okay";
-
-    ssd1306@3c {
-        compatible = "solomon,ssd1306fb";
-        reg = &lt;0x3c&gt;;        /* I²C 7-bit 地址 */
-        width = &lt;128&gt;;
-        height = &lt;64&gt;;
-        reset-gpios = &lt;&amp;gpiob 8 GPIO_ACTIVE_LOW&gt;;
-    };
-};</code></pre>
-          <p>I²C 总线上 <code>reg</code> 表示设备的 7-bit 地址。</p>
-
-          <p><strong>CAN 总线设备的特殊性：</strong></p>
-          <p>CAN 总线上的设备通常<strong>不在 devicetree 中描述</strong>，因为 Zephyr 没有像 I²C/SPI 那样的"CAN 设备"总线模型。只有 CAN 控制器本身在 devicetree 中配置，CAN 上的设备在应用层用 SocketCAN 通信。</p>
-          <pre><code>/* 只有 CAN 控制器在 devicetree 中 */
-&amp;can1 {
-    pinctrl-0 = &lt;&amp;can1_rx_pd0 &amp;can1_tx_pd1&gt;;
-    pinctrl-names = "default";
-    bitrate = &lt;500000&gt;;
-    status = "okay";
-};
-
-/* CAN 上的设备不在 devicetree 中，应用层用 socket CAN */
-int sock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-/* 直接与总线上的设备通信 */</code></pre>
-
-          <p><strong>如果完全自定义一个新设备（没有现成 binding）：</strong></p>
-          <p>在项目 <code>dts/bindings/</code> 下自己写 YAML：</p>
-          <pre><code># &lt;project&gt;/dts/bindings/my-company,my-sensor.yaml
-description: My custom sensor
-compatible: "my-company,my-sensor"
-include: [i2c-device.yaml]
-
-properties:
-  my,range:
-    type: int
-    default: 1000
-  rdy-gpios:
-    type: phandle-array</code></pre>
-          <p>驱动中用 <code>DT_PROP()</code> 宏读取这些属性值。</p>
+          <div class="callout warn">
+            <span class="callout-icon">&#9888;&#65039;</span>
+            <span><strong>CAN 的特殊性：</strong>CAN 总线上的设备通常<strong>不在 devicetree 中描述</strong>，Zephyr 没有像 I&sup2;C/SPI 那样的"CAN 设备"总线模型。只有 CAN 控制器本身在 DT 中配置，CAN 上的设备在应用层用 SocketCAN 通信。</span>
+          </div>
 
           <div class="tags"><span class="tag">devicetree</span><span class="tag">bindings</span><span class="tag">SPI</span><span class="tag">I²C</span><span class="tag">CAN</span><span class="tag">compatible</span></div>
         </div>
       </div>
 
-
+      <!-- Q4: 如何找 compatible -->
       <div class="qa-card" data-topics="fundamentals devicetree" id="qa-fund-4">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
@@ -527,49 +568,54 @@ properties:
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>三个方法，从快到慢：</strong></p>
+          <div class="method-cards">
+            <div class="method-card">
+              <div class="method-card-header">
+                &#128269; 方法一：搜文件名 <span class="speed-tag speed-fast">最快</span>
+              </div>
+              <div class="method-card-body">
+                <p>Binding 文件名就是 compatible 去掉逗号加 <code>.yaml</code>：</p>
+                <pre><code>find zephyr/dts/bindings/ \
+  -name "*.yaml" | grep -i "关键字"</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">例：搜 temp → ti,tmp108.yaml, st,stm32-temp.yaml</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">
+                &#128451;&#65039; 方法二：查厂商前缀 <span class="speed-tag speed-mid">精确</span>
+              </div>
+              <div class="method-card-body">
+                <p><code>dts/bindings/vendor-prefixes.txt</code> 记录所有前缀：</p>
+                <pre><code>st     → STMicroelectronics
+bosch  → Bosch Sensortec
+solomon → Solomon Systech</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">然后 <code>ls bindings/sensor/ | grep st,</code></p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">
+                &#128736;&#65039; 方法三：从驱动反查 <span class="speed-tag speed-slow">已有芯片时用</span>
+              </div>
+              <div class="method-card-body">
+                <p>如果你手上有芯片型号，直接搜 C 源码：</p>
+                <pre><code>grep -r "lis2dh" \
+  zephyr/drivers/sensor/ \
+  --include="*.c"</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">驱动文件头部注释就有 compatible</p>
+              </div>
+            </div>
+          </div>
 
-          <p><strong>方法一：直接搜 binding 文件名（最快）</strong></p>
-          <p>Binding 文件名就是 compatible 去掉逗号加 <code>.yaml</code>：</p>
-          <pre><code>find zephyr/dts/bindings/ -name "*.yaml" | grep -i "关键字"
-# 例：找温度传感器
-# → sensor/ti,tmp108.yaml
-# → sensor/st,stm32-temp.yaml</code></pre>
-
-          <p><strong>方法二：查厂商前缀，精确锁定</strong></p>
-          <p><code>dts/bindings/vendor-prefixes.txt</code> 记录了所有厂商前缀：</p>
-          <pre><code>st          STMicroelectronics
-ti          Texas Instruments
-bosch       Bosch Sensortec
-nordic      Nordic Semiconductor
-solomon     Solomon Systech   ← SSD1306 的厂商</code></pre>
-          <p>知道前缀后直接看对应目录：<code>ls zephyr/dts/bindings/sensor/ | grep st,</code></p>
-
-          <p><strong>方法三：从驱动代码反查（已有芯片时）</strong></p>
-          <pre><code>grep -r "lis2dh" zephyr/drivers/sensor/ --include="*.c"
-# 驱动文件头部注释就有 compatible 信息</code></pre>
-
-          <p><strong>常用设备速查：</strong></p>
-          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
-            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">设备类型</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">常见 compatible</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">备注</th></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">LED</td><td style="padding:6px 10px; border:1px solid #dee2e6;">gpio-leds</td><td style="padding:6px 10px; border:1px solid #dee2e6;">通用，不需要驱动</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">按键</td><td style="padding:6px 10px; border:1px solid #dee2e6;">gpio-keys</td><td style="padding:6px 10px; border:1px solid #dee2e6;">通用，不需要驱动</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">I²C 温度传感器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">ti,tmp108 / microchip,mcp9808</td><td style="padding:6px 10px; border:1px solid #dee2e6;">都有现成驱动</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">SPI 加速度计</td><td style="padding:6px 10px; border:1px solid #dee2e6;">st,lis2dh / st,lis2dw12</td><td style="padding:6px 10px; border:1px solid #dee2e6;">中断引脚可选</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">I²C OLED 屏</td><td style="padding:6px 10px; border:1px solid #dee2e6;">solomon,ssd1306fb</td><td style="padding:6px 10px; border:1px solid #dee2e6;">128x64 最常见</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">CAN 控制器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">bosch,mcan (STM32H7等) / st,stm32-bxcan (F1/F4) / espressif,esp32-twai (ESP32)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">按 SoC 选</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">UART/I²C/SPI 控制器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC 自带，直接 &amp;usart1 等</td><td style="padding:6px 10px; border:1px solid #dee2e6;">不需要手动指定</td></tr>
-          </table>
-
-          <p><strong>关键区分：</strong>UART/I²C/SPI/CAN 控制器的 compatible 在 SoC 的 dtsi 文件里已经写好了，你用 <code>&amp;usart1</code> 的时候不需要关心它。你只需要关心挂在总线上的<strong>传感器/显示屏</strong>的 compatible。</p>
-
-          <p><strong>没有现成驱动？</strong>参考最近的同类驱动做模板：<code>ls zephyr/drivers/sensor/</code>。</p>
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span>UART/I&sup2;C/SPI/CAN <strong>控制器</strong>的 compatible 在 SoC 的 dtsi 文件里已经写好了，用 <code>&amp;usart1</code> 时不需要关心。你只需要关心挂在总线上的<strong>传感器/显示屏</strong>的 compatible。</span>
+          </div>
 
           <div class="tags"><span class="tag">compatible</span><span class="tag">devicetree</span><span class="tag">bindings</span><span class="tag">驱动</span></div>
         </div>
       </div>
 
-
+      <!-- Q5: @address 与 reg -->
       <div class="qa-card" data-topics="fundamentals devicetree" id="qa-fund-5">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
@@ -577,64 +623,31 @@ solomon     Solomon Systech   ← SSD1306 的厂商</code></pre>
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>核心规则：节点名中的 @xxxx（unit-address）必须和 reg 属性的第一个值完全一致，否则编译报错。</strong></p>
+          <div class="rule-box">
+            <div class="rule-title">核心规则</div>
+            <ul>
+              <li>节点名中的 <code>@xxxx</code> 叫 <strong>unit-address</strong>（单元地址）</li>
+              <li>有 @address → 必须有 <code>reg</code>，且 reg 第一个值 == @ 的值</li>
+              <li>无 @address → 不需要 reg</li>
+              <li>reg 的格式由父节点的 <code>#address-cells</code> 和 <code>#size-cells</code> 决定</li>
+            </ul>
+          </div>
 
-          <pre><code>bme280@76 {          // @76 是 unit-address
-    reg = &lt;0x76&gt;;    // reg 的第一个值必须是 76
-};
-
-// 错误示范 — 编译报错！
-bme280@76 {
-    reg = &lt;0x3c&gt;;    // @76 和 reg 不匹配</code></pre>
-
-          <p><strong>reg 的格式取决于总线类型（由父节点的 #address-cells 决定）：</strong></p>
-          <pre><code>// I²C：地址是单个值（7-bit 地址）
-&amp;i2c0 {                        // #address-cells = &lt;1&gt;;
-    ssd1306@3c {
-        reg = &lt;0x3c&gt;;          // @3c 必须等于 0x3c
-    };
-};
-
-// SPI：地址是片选编号
-&amp;spi1 {                        // #address-cells = &lt;1&gt;;
-    bme280@0 {
-        reg = &lt;0&gt;;             // CS0，@0 必须等于 0
-    };
-};
-
-// 内存映射设备：多个值
-&amp;flash0 {                      // #address-cells = &lt;1&gt;; #size-cells = &lt;1&gt;;
-    partitions@8000 {          // @8000 是起始地址
-        reg = &lt;0x8000 0x1000&gt;; // &lt;起始地址 大小&gt;，第一个值 = 0x8000
-    };
-};</code></pre>
-
-          <p><strong>什么时候不需要 reg？</strong></p>
-          <p>如果一个设备不是通过总线地址寻址的，就不需要 @address 和 reg：</p>
-          <pre><code>// LED：用 gpios 寻址，不是总线地址 — 不需要 reg
-led_0 {                         // ← 没有 @address
-    gpios = &lt;&amp;gpioa 5 0&gt;;
-};
-
-// 但如果 LED 挂在 I²C GPIO 扩展器上 — 就需要 reg
-&amp;pcf8574 {                      // I²C GPIO 扩展器
-    led@3 {                     // @3 = 第 3 号扩展 GPIO
-        reg = &lt;3&gt;;              // 这里就需要 reg
-    };
-};</code></pre>
-
-          <p><strong>规则总结：</strong></p>
-          <ul>
-            <li>有 @address → 必须有 reg，且 reg 第一个值 == @ 的值</li>
-            <li>无 @address → 不需要 reg</li>
-            <li>reg 的格式（几个值、各什么含义）由父节点的 #address-cells 和 #size-cells 决定</li>
-          </ul>
+          <table class="props">
+            <thead><tr><th>总线</th><th>实例</th><th>reg 第一个值含义</th></tr></thead>
+            <tbody>
+              <tr><td>I&sup2;C</td><td><code>ssd1306@3c { reg = &lt;0x3c&gt;; }</code></td><td>7-bit 从机地址</td></tr>
+              <tr><td>SPI</td><td><code>bme280@0 { reg = &lt;0&gt;; }</code></td><td>CS 片选线编号</td></tr>
+              <tr><td>Flash</td><td><code>partition@8000 { reg = &lt;0x8000 0x1000&gt;; }</code></td><td>起始地址（第二个值是大小）</td></tr>
+              <tr><td>GPIO 设备</td><td><code>led_0 { gpios = &lt;...&gt;; }</code></td><td>不需要 reg — 没有总线地址</td></tr>
+            </tbody>
+          </table>
 
           <div class="tags"><span class="tag">devicetree</span><span class="tag">reg</span><span class="tag">unit-address</span><span class="tag">#address-cells</span></div>
         </div>
       </div>
 
-
+      <!-- Q6: binding 属性值去哪找 -->
       <div class="qa-card" data-topics="fundamentals devicetree gpio" id="qa-fund-6">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
@@ -642,43 +655,49 @@ led_0 {                         // ← 没有 @address
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p>Binding 文件只定义"有哪些属性"，但<strong>属性的具体值要去三个地方找</strong>：</p>
+          <p>Binding 只定义"有哪些属性"，<strong>属性的具体值要去三个地方找</strong>：</p>
 
-          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
-            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">属性</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">值来源</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">具体文件</th></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">reg</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC 内存映射</td><td style="padding:6px 10px; border:1px solid #dee2e6;">dts/arm/stm32/stm32f407.dtsi</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">clocks</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC 时钟树</td><td style="padding:6px 10px; border:1px solid #dee2e6;">dts/arm/stm32/stm32f407.dtsi</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">pin</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC dtsi 中定义的 GPIO 引脚</td><td style="padding:6px 10px; border:1px solid #dee2e6;">boards/ 下的 dts + dts/arm/stm32/ 下的 dtsi</td></tr>
-            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">flags</td><td style="padding:6px 10px; border:1px solid #dee2e6;">dt-bindings 宏定义</td><td style="padding:6px 10px; border:1px solid #dee2e6;">include/zephyr/dt-bindings/gpio/gpio.h</td></tr>
+          <table class="props">
+            <thead><tr><th>属性</th><th>值来源</th><th>具体文件</th></tr></thead>
+            <tbody>
+              <tr><td><code>reg</code></td><td>SoC 内存映射</td><td><code>dts/arm/stm32/stm32f407.dtsi</code></td></tr>
+              <tr><td><code>clocks</code></td><td>SoC 时钟树</td><td><code>dts/arm/stm32/stm32f407.dtsi</code></td></tr>
+              <tr><td><code>pin</code></td><td>SoC dtsi 中定义的 GPIO 引脚</td><td><code>boards/</code> 下 dts + <code>dts/arm/stm32/</code> 下 dtsi</td></tr>
+              <tr><td><code>flags</code></td><td>dt-bindings 宏定义</td><td><code>include/zephyr/dt-bindings/gpio/gpio.h</code></td></tr>
+            </tbody>
           </table>
 
-          <p><strong>flags 常用宏（gpio.h）：</strong></p>
-          <pre><code>// 逻辑电平
-#define GPIO_ACTIVE_HIGH  0    // 高电平有效
-#define GPIO_ACTIVE_LOW   1    // 低电平有效
+          <p style="margin-top:14px;"><strong>完整查找流程 — 以 GPIO 为例：</strong></p>
 
-// 上下拉
-#define GPIO_PULL_UP      2    // 上拉
-#define GPIO_PULL_DOWN    4    // 下拉
+          <div style="font-family:'SF Mono','Fira Code',monospace; font-size:0.82rem; line-height:2; margin:10px 0;">
+            <div style="display:flex; align-items:center; gap:0;">
+              <span style="color:#6b7280;">gpios = &lt;</span>
+              <span style="background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:4px; font-weight:600;">&amp;gpioa</span>
+              <span style="color:#6b7280;">&nbsp;</span>
+              <span style="background:#fce7f3; color:#9d174d; padding:2px 8px; border-radius:4px; font-weight:600;">5</span>
+              <span style="color:#6b7280;">&nbsp;</span>
+              <span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:4px; font-weight:600;">(GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)</span>
+              <span style="color:#6b7280;">&gt;;</span>
+            </div>
+            <div style="display:flex; padding-left:188px;">
+              <span style="color:#9d174d;">▲</span>
+            </div>
+            <div style="display:flex; padding-left:160px; gap:60px;">
+              <span style="color:#9d174d; font-size:0.78rem;">pin = 5 (PA5)<br><span style="color:#6b7280;">← stm32f407.dtsi</span></span>
+              <span style="color:#92400e; font-size:0.78rem;">flags 宏<br><span style="color:#6b7280;">← gpio.h</span></span>
+            </div>
+            <div style="display:flex; padding-left:40px; margin-top:2px;">
+              <span style="color:#3730a3;">▲</span>
+            </div>
+            <div style="display:flex; padding-left:18px;">
+              <span style="color:#3730a3; font-size:0.78rem;">&amp;gpioa 存在 ← stm32f407.dtsi</span>
+            </div>
+          </div>
 
-// 驱动能力
-#define GPIO_OPEN_DRAIN   8    // 开漏输出
-#define GPIO_OPEN_SOURCE  16   // 开源输出
-
-// 组合使用
-gpios = &lt;&amp;gpioc 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)&gt;;</code></pre>
-
-          <p><strong>完整查找流程：</strong></p>
-          <pre><code>你要写：gpios = &lt;&amp;gpioa 5 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)&gt;;
-                       │   │       └──────────────────────┘
-                       │   │                ↑
-                       │   │      gpio.h → 宏定义，用 | 组合
-                       │   │
-                       │   └── stm32f407.dtsi → 这个口有 0-15
-                       │
-                       └── stm32f407.dtsi → &amp;gpioa 存在</code></pre>
-
-          <p><strong>一句话：</strong>属性结构看 binding YAML，属性值看 dts/dtsi（硬件资源）+ 头文件（宏常量）。</p>
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>一句话：</strong>属性结构看 binding YAML，属性值看 dts/dtsi（硬件资源）+ 头文件（宏常量）。</span>
+          </div>
 
           <div class="tags"><span class="tag">binding</span><span class="tag">GPIO</span><span class="tag">devicetree</span><span class="tag">dt-bindings</span></div>
         </div>
@@ -687,99 +706,78 @@ gpios = &lt;&amp;gpioc 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)&gt;;</code></pre>
     </div>
   </section>
 
-  <!-- ────────── GPIO ────────── -->
+  <!-- ═══════════ GPIO ═══════════ -->
   <section class="topic-section topic-gpio" data-topic="gpio" id="sec-gpio">
     <h2><span class="icon icon-gpio">G</span> GPIO</h2>
-    <div class="qa-list">
-
-      <!-- 示例问答卡片：复制此块添加新内容 -->
-      <!--
-      <div class="qa-card" data-topics="gpio" id="qa-gpio-1">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">这里写问题标题</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p>这里写回答内容。支持 HTML 格式。</p>
-          <pre><code>// 代码示例
-gpio_pin_configure_dt(&amp;led, GPIO_OUTPUT_ACTIVE);</code></pre>
-          <div class="tags"><span class="tag">API</span><span class="tag">示例</span></div>
-        </div>
-      </div>
-      -->
-
-    </div>
+    <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── CAN ────────── -->
+  <!-- ═══════════ CAN ═══════════ -->
   <section class="topic-section topic-can" data-topic="can" id="sec-can">
     <h2><span class="icon icon-can">C</span> CAN 总线</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── PWM ────────── -->
+  <!-- ═══════════ PWM ═══════════ -->
   <section class="topic-section topic-pwm" data-topic="pwm" id="sec-pwm">
     <h2><span class="icon icon-pwm">P</span> PWM 输出</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── ADC ────────── -->
+  <!-- ═══════════ ADC ═══════════ -->
   <section class="topic-section topic-adc" data-topic="adc" id="sec-adc">
     <h2><span class="icon icon-adc">A</span> ADC 采集</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── I²C ────────── -->
+  <!-- ═══════════ I²C ═══════════ -->
   <section class="topic-section topic-i2c" data-topic="i2c" id="sec-i2c">
-    <h2><span class="icon icon-i2c">I</span> I²C 总线</h2>
+    <h2><span class="icon icon-i2c">I</span> I&sup2;C 总线</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── SPI ────────── -->
+  <!-- ═══════════ SPI ═══════════ -->
   <section class="topic-section topic-spi" data-topic="spi" id="sec-spi">
     <h2><span class="icon icon-spi">S</span> SPI 总线</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── UART ────────── -->
+  <!-- ═══════════ UART ═══════════ -->
   <section class="topic-section topic-uart" data-topic="uart" id="sec-uart">
     <h2><span class="icon icon-uart">U</span> UART 串口</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── Timer ────────── -->
+  <!-- ═══════════ Timer ═══════════ -->
   <section class="topic-section topic-timer" data-topic="timer" id="sec-timer">
     <h2><span class="icon icon-timer">T</span> 定时器</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── DMA ────────── -->
+  <!-- ═══════════ DMA ═══════════ -->
   <section class="topic-section topic-dma" data-topic="dma" id="sec-dma">
     <h2><span class="icon icon-dma">D</span> DMA</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── 线程与调度 ────────── -->
+  <!-- ═══════════ 线程与调度 ═══════════ -->
   <section class="topic-section topic-thread" data-topic="thread" id="sec-thread">
-    <h2><span class="icon icon-thread">θ</span> 线程与调度</h2>
+    <h2><span class="icon icon-thread">&theta;</span> 线程与调度</h2>
     <div class="qa-list"></div>
   </section>
 
-  <!-- ────────── 其他 ────────── -->
+  <!-- ═══════════ 其他 ═══════════ -->
   <section class="topic-section" data-topic="other" id="sec-other">
-    <h2>📦 其他（构建 / Devicetree / 驱动模型 …）</h2>
+    <h2>&#128230; 其他（构建 / Devicetree / 驱动模型 …）</h2>
     <div class="qa-list"></div>
   </section>
 
 </main>
 
 <script>
-// ── 构建侧边栏目录 ──
 (function buildTOC() {
   const toc = document.getElementById('toc');
-  const sections = document.querySelectorAll('.topic-section');
-  sections.forEach(sec => {
+  document.querySelectorAll('.topic-section').forEach(sec => {
     const h2 = sec.querySelector('h2');
     const count = sec.querySelectorAll('.qa-card').length;
     const a = document.createElement('a');
@@ -791,7 +789,6 @@ gpio_pin_configure_dt(&amp;led, GPIO_OUTPUT_ACTIVE);</code></pre>
   });
 })();
 
-// ── 更新计数 ──
 function updateCounts() {
   document.querySelectorAll('.topic-section').forEach(sec => {
     const count = sec.querySelectorAll('.qa-card:not([style*="display: none"])').length;
@@ -804,48 +801,36 @@ function updateCounts() {
   });
 }
 
-// ── 搜索 ──
 document.getElementById('search').addEventListener('input', function(e) {
   const q = e.target.value.toLowerCase().trim();
   const cards = document.querySelectorAll('.qa-card');
   let foundAny = false;
-
   if (!q) {
-    // 空搜索：显示所有，按照当前 filter 状态
     cards.forEach(c => c.style.display = '');
     document.querySelectorAll('.topic-section').forEach(s => s.style.display = '');
     document.getElementById('noResult').classList.remove('show');
     updateCounts();
     return;
   }
-
   cards.forEach(card => {
     const text = card.textContent.toLowerCase();
     const match = text.includes(q);
     card.style.display = match ? '' : 'none';
     if (match) foundAny = true;
   });
-
-  // 显示/隐藏空的 section
   document.querySelectorAll('.topic-section').forEach(sec => {
     const visible = sec.querySelectorAll('.qa-card:not([style*="display: none"])').length;
     sec.style.display = visible > 0 ? '' : 'none';
   });
-
   document.getElementById('noResult').classList.toggle('show', !foundAny);
   updateCounts();
 });
 
-// ── 按主题过滤 ──
 function filterBy(topic) {
-  // 更新按钮 active 状态
   document.querySelectorAll('.btn[data-filter]').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector(`.btn[data-filter="${topic}"]`);
   if (btn) btn.classList.add('active');
-
-  // 清除搜索框
   document.getElementById('search').value = '';
-
   if (topic === 'all') {
     document.querySelectorAll('.topic-section').forEach(s => s.style.display = '');
     document.querySelectorAll('.qa-card').forEach(c => c.style.display = '');
@@ -853,31 +838,22 @@ function filterBy(topic) {
     updateCounts();
     return;
   }
-
   let foundAny = false;
   document.querySelectorAll('.topic-section').forEach(sec => {
     if (sec.dataset.topic === topic) {
       sec.style.display = '';
-      sec.querySelectorAll('.qa-card').forEach(c => {
-        c.style.display = '';
-        foundAny = true;
-      });
+      sec.querySelectorAll('.qa-card').forEach(c => { c.style.display = ''; foundAny = true; });
     } else {
       sec.style.display = 'none';
       sec.querySelectorAll('.qa-card').forEach(c => c.style.display = 'none');
     }
   });
-
   document.getElementById('noResult').classList.toggle('show', !foundAny);
   updateCounts();
 }
 
-function expandAll() {
-  document.querySelectorAll('.qa-card').forEach(c => c.classList.add('open'));
-}
-function collapseAll() {
-  document.querySelectorAll('.qa-card').forEach(c => c.classList.remove('open'));
-}
+function expandAll() { document.querySelectorAll('.qa-card').forEach(c => c.classList.add('open')); }
+function collapseAll() { document.querySelectorAll('.qa-card').forEach(c => c.classList.remove('open')); }
 </script>
 </body>
 </html>
