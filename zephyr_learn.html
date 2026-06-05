@@ -85,10 +85,20 @@
     cursor: pointer; user-select: none;
     transition: all 0.25s ease;
   }
+  /* 各主题 title hover 颜色跟随主题 */
+  .topic-gpio        h2:hover { border-color: var(--accent-gpio);   box-shadow: 0 12px 32px rgba(5,150,105,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
+  .topic-can         h2:hover { border-color: var(--accent-can);    box-shadow: 0 12px 32px rgba(217,119,6,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+  .topic-pwm         h2:hover { border-color: var(--accent-pwm);    box-shadow: 0 12px 32px rgba(124,58,237,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); }
+  .topic-adc         h2:hover { border-color: var(--accent-adc);    box-shadow: 0 12px 32px rgba(220,38,38,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+  .topic-i2c         h2:hover { border-color: var(--accent-i2c);    box-shadow: 0 12px 32px rgba(8,145,178,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }
+  .topic-spi         h2:hover { border-color: var(--accent-spi);    box-shadow: 0 12px 32px rgba(79,70,229,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); }
+  .topic-uart        h2:hover { border-color: var(--accent-uart);   box-shadow: 0 12px 32px rgba(234,88,12,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); }
+  .topic-timer       h2:hover { border-color: var(--accent-timer);  box-shadow: 0 12px 32px rgba(190,24,93,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
+  .topic-dma         h2:hover { border-color: var(--accent-dma);    box-shadow: 0 12px 32px rgba(29,78,216,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+  .topic-thread      h2:hover { border-color: var(--accent-thread); box-shadow: 0 12px 32px rgba(180,83,9,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+  .topic-fundamentals h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+  .topic-other       h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   main h2:hover {
-    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-    border-color: var(--primary);
-    box-shadow: 0 12px 32px rgba(37,99,235,0.18), 0 4px 12px rgba(0,0,0,0.1);
     transform: translateY(-5px) scale(1.02);
   }
   main h2 .icon {
@@ -143,24 +153,58 @@
     background: var(--border); transition: all 0.3s ease;
   }
   .qa-card:hover {
-    box-shadow: 0 14px 36px rgba(0,0,0,0.16), 0 4px 12px rgba(0,0,0,0.1);
     transform: translateY(-6px) scale(1.015);
-    border-color: #94a3b8;
   }
   .qa-card:hover::before { width: 8px; }
+  /* 卡片 hover 光晕跟随主题色 */
+  .topic-gpio        .qa-card:hover { box-shadow: 0 14px 36px rgba(5,150,105,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-gpio); }
+  .topic-can         .qa-card:hover { box-shadow: 0 14px 36px rgba(217,119,6,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-can); }
+  .topic-pwm         .qa-card:hover { box-shadow: 0 14px 36px rgba(124,58,237,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-pwm); }
+  .topic-adc         .qa-card:hover { box-shadow: 0 14px 36px rgba(220,38,38,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-adc); }
+  .topic-i2c         .qa-card:hover { box-shadow: 0 14px 36px rgba(8,145,178,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-i2c); }
+  .topic-spi         .qa-card:hover { box-shadow: 0 14px 36px rgba(79,70,229,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-spi); }
+  .topic-uart        .qa-card:hover { box-shadow: 0 14px 36px rgba(234,88,12,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-uart); }
+  .topic-timer       .qa-card:hover { box-shadow: 0 14px 36px rgba(190,24,93,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-timer); }
+  .topic-dma         .qa-card:hover { box-shadow: 0 14px 36px rgba(29,78,216,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-dma); }
+  .topic-thread      .qa-card:hover { box-shadow: 0 14px 36px rgba(180,83,9,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-thread); }
+  .topic-fundamentals .qa-card:hover { box-shadow: 0 14px 36px rgba(37,99,235,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary); }
 
-  /* 用父级 topic 给同 section 内的卡片着色 */
+  /* 用父级 topic 给同 section 内的卡片着色 — 边条 + 标记 + 箭头 */
   .topic-gpio        .qa-card::before { background: var(--accent-gpio); }
+  .topic-gpio        .qa-card .q .marker { background: var(--accent-gpio); }
   .topic-can         .qa-card::before { background: var(--accent-can); }
+  .topic-can         .qa-card .q .marker { background: var(--accent-can); }
   .topic-pwm         .qa-card::before { background: var(--accent-pwm); }
+  .topic-pwm         .qa-card .q .marker { background: var(--accent-pwm); }
   .topic-adc         .qa-card::before { background: var(--accent-adc); }
+  .topic-adc         .qa-card .q .marker { background: var(--accent-adc); }
   .topic-i2c         .qa-card::before { background: var(--accent-i2c); }
+  .topic-i2c         .qa-card .q .marker { background: var(--accent-i2c); }
   .topic-spi         .qa-card::before { background: var(--accent-spi); }
+  .topic-spi         .qa-card .q .marker { background: var(--accent-spi); }
   .topic-uart        .qa-card::before { background: var(--accent-uart); }
+  .topic-uart        .qa-card .q .marker { background: var(--accent-uart); }
   .topic-timer       .qa-card::before { background: var(--accent-timer); }
+  .topic-timer       .qa-card .q .marker { background: var(--accent-timer); }
   .topic-dma         .qa-card::before { background: var(--accent-dma); }
+  .topic-dma         .qa-card .q .marker { background: var(--accent-dma); }
   .topic-thread      .qa-card::before { background: var(--accent-thread); }
+  .topic-thread      .qa-card .q .marker { background: var(--accent-thread); }
   .topic-fundamentals .qa-card::before { background: var(--primary); }
+  .topic-fundamentals .qa-card .q .marker { background: var(--primary); }
+
+  /* 展开箭头也跟随主题色 */
+  .topic-gpio        .qa-card.open .q .arrow { background: #d1fae5; color: var(--accent-gpio); }
+  .topic-can         .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-can); }
+  .topic-pwm         .qa-card.open .q .arrow { background: #ede9fe; color: var(--accent-pwm); }
+  .topic-adc         .qa-card.open .q .arrow { background: #fee2e2; color: var(--accent-adc); }
+  .topic-i2c         .qa-card.open .q .arrow { background: #cffafe; color: var(--accent-i2c); }
+  .topic-spi         .qa-card.open .q .arrow { background: #e0e7ff; color: var(--accent-spi); }
+  .topic-uart        .qa-card.open .q .arrow { background: #ffedd5; color: var(--accent-uart); }
+  .topic-timer       .qa-card.open .q .arrow { background: #fce7f3; color: var(--accent-timer); }
+  .topic-dma         .qa-card.open .q .arrow { background: #dbeafe; color: var(--accent-dma); }
+  .topic-thread      .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-thread); }
+  .topic-fundamentals .qa-card.open .q .arrow { background: #dbeafe; color: var(--primary); }
 
   .qa-card .q {
     padding: 16px 20px; cursor: pointer; display: flex;
