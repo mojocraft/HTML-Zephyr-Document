@@ -797,6 +797,80 @@ solomon → Solomon Systech</code></pre>
         </div>
       </div>
 
+
+      <!-- Q7: 如何找到外设的 API 和使用流程 -->
+      <div class="qa-card" data-topics="fundamentals api gpio i2c spi uart can pwm adc" id="qa-fund-7">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">如何知道一个外设应该调用哪些 API？使用的标准流程是什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>三步定位法：compatible → 驱动 → 头文件 → Samples</strong></p>
+
+          <div class="path-flow">
+            <span class="path-node device">compatible</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node binding">drivers/*.c</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node source">include/drivers/*.h</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node" style="background:#ede9fe;color:#5b21b6;">samples/drivers/</span>
+          </div>
+
+          <p><strong>Zephyr 外设 API 的统一使用模式：</strong></p>
+          <div class="layer-stack">
+            <div class="layer layer-top">
+              <span class="layer-num">1</span>
+              <div class="layer-label">设备树描述硬件</div>
+              <div class="layer-desc">在 .overlay 或 dts 中写好外设节点，包括 compatible、pinctrl、reg 等</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">2</span>
+              <div class="layer-label">获取设备实例</div>
+              <div class="layer-desc"><code>DEVICE_DT_GET()</code> 或 <code>I2C_DT_SPEC_GET()</code> 等宏从 DT 提取已配置好的设备</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">3</span>
+              <div class="layer-label">检查设备就绪</div>
+              <div class="layer-desc"><code>device_is_ready()</code> — 确认驱动初始化完成、硬件可访问</div>
+            </div>
+            <div class="layer layer-mid">
+              <span class="layer-num">4</span>
+              <div class="layer-label">配置（可选）</div>
+              <div class="layer-desc"><code>&lt;periph&gt;_configure()</code> — 设置波特率、模式等运行时参数</div>
+            </div>
+            <div class="layer layer-bot">
+              <span class="layer-num">5</span>
+              <div class="layer-label">使用外设</div>
+              <div class="layer-desc"><code>&lt;periph&gt;_read/write/send()</code> — 实际读写操作</div>
+            </div>
+          </div>
+
+          <p style="margin-top:14px;"><strong>各外设 API 速查：</strong></p>
+          <table class="props">
+            <thead><tr><th>外设</th><th>头文件</th><th>获取实例宏</th><th>核心 API</th></tr></thead>
+            <tbody>
+              <tr><td>GPIO</td><td><code>drivers/gpio.h</code></td><td><code>GPIO_DT_SPEC_GET()</code></td><td><code>gpio_pin_configure_dt()</code> <code>gpio_pin_set_dt()</code></td></tr>
+              <tr><td>I&sup2;C</td><td><code>drivers/i2c.h</code></td><td><code>I2C_DT_SPEC_GET()</code></td><td><code>i2c_write_dt()</code> <code>i2c_read_dt()</code> <code>i2c_write_read_dt()</code></td></tr>
+              <tr><td>SPI</td><td><code>drivers/spi.h</code></td><td><code>SPI_DT_SPEC_GET()</code></td><td><code>spi_read_dt()</code> <code>spi_write_dt()</code> <code>spi_transceive_dt()</code></td></tr>
+              <tr><td>UART</td><td><code>drivers/uart.h</code></td><td><code>DEVICE_DT_GET()</code></td><td><code>uart_tx()</code> <code>uart_rx_enable()</code> <code>uart_poll_in()</code></td></tr>
+              <tr><td>CAN</td><td><code>drivers/can.h</code></td><td><code>DEVICE_DT_GET()</code></td><td><code>can_send()</code> <code>can_add_rx_filter()</code> <code>can_get_state()</code></td></tr>
+              <tr><td>PWM</td><td><code>drivers/pwm.h</code></td><td><code>PWM_DT_SPEC_GET()</code></td><td><code>pwm_set_dt()</code> <code>pwm_set_pulse_dt()</code></td></tr>
+              <tr><td>ADC</td><td><code>drivers/adc.h</code></td><td><code>ADC_DT_SPEC_GET()</code></td><td><code>adc_read_dt()</code> <code>adc_raw_to_millivolts_dt()</code></td></tr>
+              <tr><td>Sensor</td><td><code>drivers/sensor.h</code></td><td><code>SENSOR_DT_GET()</code></td><td><code>sensor_sample_fetch()</code> <code>sensor_channel_get()</code></td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span><strong>最快上手路径：</strong>不管你用什么外设，<code>ls zephyr/include/zephyr/drivers/&lt;外设名&gt;.h</code> 看 API + <code>ls zephyr/samples/drivers/&lt;外设名&gt;/</code> 看示例 main.c，照抄流程即可。</span>
+          </div>
+
+          <div class="tags"><span class="tag">API</span><span class="tag">驱动</span><span class="tag">GPIO</span><span class="tag">I²C</span><span class="tag">SPI</span><span class="tag">UART</span><span class="tag">CAN</span><span class="tag">PWM</span><span class="tag">ADC</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
