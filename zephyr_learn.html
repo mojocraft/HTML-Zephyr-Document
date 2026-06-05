@@ -1752,6 +1752,170 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
         </div>
       </div>
 
+      <!-- Q13: 中断使用全解 -->
+      <div class="qa-card" data-topics="fundamentals interrupt" id="qa-fund-13">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 中各种中断（GPIO、UART、DMA 等）都是怎么使用的？需要注意什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Zephyr 中断体系的核心原则：ISR 要短，数据处理放线程。</strong></p>
+
+          <p><strong>中断处理的分层模型（Top Half / Bottom Half）：</strong></p>
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">1</span><div class="layer-label">硬件中断触发</div><div class="layer-desc">外设（GPIO/UART/DMA）产生中断信号 → NVIC 跳转到 ISR</div></div>
+            <div class="layer layer-mid"><span class="layer-num">2</span><div class="layer-label">Top Half：ISR（越快越好）</div><div class="layer-desc">清中断标志、给信号量/发事件/raise poll_signal、提交工作队列</div></div>
+            <div class="layer layer-bot"><span class="layer-num">3</span><div class="layer-label">Bottom Half：线程处理</div><div class="layer-desc">被信号量唤醒 → 读取数据、处理协议、更新 UI。可以 sleep、可以加锁</div></div>
+          </div>
+
+          <p><strong>一、注册中断的三种方式</strong></p>
+
+          <table class="props">
+            <thead><tr><th style="width:20%;">方式</th><th style="width:40%;">适用场景</th><th style="width:40%;">示例</th></tr></thead>
+            <tbody>
+              <tr><td><strong>设备驱动封装</strong></td><td>外设驱动已封装好中断，只需注册回调</td><td><code>gpio_add_callback()</code> / <code>uart_irq_callback_set()</code> / <code>can_add_rx_filter()</code></td></tr>
+              <tr><td><strong>IRQ_CONNECT 直接连接</strong></td><td>自定义硬件、非标准外设</td><td><code>IRQ_CONNECT(IRQ_LINE, prio, isr, arg, flags)</code></td></tr>
+              <tr><td><strong>设备树中断绑定</strong></td><td>传感器中断引脚等标准用法</td><td><code>irq-gpios = &lt;&amp;gpioa 3 GPIO_ACTIVE_LOW&gt;;</code> → <code>gpio_pin_interrupt_configure_dt()</code></td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>二、ISR 中的禁止事项（黄金法则）</strong></p>
+          <div class="rule-box">
+            <div class="rule-title">ISR 中可以做的</div>
+            <ul>
+              <li>读写硬件寄存器、清中断标志</li>
+              <li><code>k_sem_give()</code> — 释放信号量唤醒线程</li>
+              <li><code>k_event_post/set()</code> — 发送事件</li>
+              <li><code>k_poll_signal_raise()</code> — 触发 poll 信号</li>
+              <li><code>k_msgq_put()</code> — 非阻塞放入消息队列</li>
+              <li><code>k_work_submit()</code> — 提交工作项到系统队列</li>
+              <li>原子操作：<code>atomic_set/clear/inc</code></li>
+            </ul>
+          </div>
+          <div class="rule-box" style="border-color: #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #fafbfc 100%);">
+            <div class="rule-title" style="color: #ef4444;">ISR 中绝对不能做的</div>
+            <ul>
+              <li><strong>不能 sleep</strong> — <code>k_sleep()</code>, <code>k_msleep()</code>, <code>k_sem_take(K_FOREVER)</code></li>
+              <li><strong>不能拿互斥锁</strong> — <code>k_mutex_lock()</code> 会触发断言失败</li>
+              <li><strong>不能做耗时操作</strong> — 大段 <code>printk</code>、复杂运算、I²C/SPI 传输</li>
+              <li><strong>不能分配内存</strong> — <code>k_malloc()</code> 在某些配置下不可用</li>
+              <li><strong>栈有限</strong> — ISR 使用中断栈（<code>CONFIG_ISR_STACK_SIZE</code>），通常仅 2KB</li>
+            </ul>
+          </div>
+
+          <p><strong>三、ISR → 线程通信的四种标准模式</strong></p>
+          <div class="method-cards">
+            <div class="method-card">
+              <div class="method-card-header">&#128276; 信号量</div>
+              <div class="method-card-body">
+                <pre><code>/* ISR */
+k_sem_give(&amp;data_ready);
+/* 线程 */
+k_sem_take(&amp;data_ready, K_FOREVER);
+process();</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">最简单，适合单事件通知</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#9889; k_poll_signal</div>
+              <div class="method-card-body">
+                <pre><code>/* ISR */
+k_poll_signal_raise(&amp;sig, 0);
+/* 线程 */
+k_poll(&amp;evt, 1, K_FOREVER);</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">DMA/ADC 等异步 API 的标准通知方式</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128451;&#65039; 工作队列</div>
+              <div class="method-card-body">
+                <pre><code>/* ISR */
+k_work_submit(&amp;my_work);
+/* 工作线程 */
+void work_handler(struct k_work *w) {
+    /* 可以sleep/加锁 */
+}</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">ISR 最轻，工作线程自动排期</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128229; 消息队列</div>
+              <div class="method-card-body">
+                <pre><code>/* ISR */
+k_msgq_put(&amp;q, &amp;msg, K_NO_WAIT);
+/* 线程 */
+k_msgq_get(&amp;q, &amp;msg, K_FOREVER);</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">适合 ISR 产生数据块传给线程</p>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>四、平台差异</strong></p>
+          <table class="props">
+            <thead><tr><th>平台</th><th>中断系统</th><th>注意事项</th></tr></thead>
+            <tbody>
+              <tr><td>STM32</td><td>Cortex-M NVIC，0-255 优先级（数值小=优先）</td><td>EXTI 线共享（PA0+PB0+PC0...共用 EXTI0），需在 ISR 中判断来源<br>零延迟中断设置 <code>IRQ_ZERO_LATENCY</code> flag</td></tr>
+              <tr><td>ESP32</td><td>Xtensa 双核，中断分配器</td><td>使用 <code>IRQ_CONNECT</code> 时需指定目标 CPU（PROCPU/APPCPU）<br>中断优先级仅 1-7（数值大=优先）</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>五、中断优先级配置</strong></p>
+          <pre><code>/* Kconfig 中配置 */
+CONFIG_ISR_STACK_SIZE=2048        /* 中断栈大小                        */
+
+/* IRQ_CONNECT 时指定优先级         */
+IRQ_CONNECT(IRQ_LINE, 3, my_isr, NULL, 0);
+/*                       ↑                                          */
+/*                 优先级 3（STM32 数值小=优先，ESP32 数值大=优先）    */</code></pre>
+
+          <p><strong>六、完整示例 — GPIO 中断 + 工作队列 + 消抖</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/gpio.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+static const struct gpio_dt_spec btn =
+    GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+static struct gpio_callback btn_cb;
+static struct k_work_delayable debounce_work;
+
+/* Bottom Half — 在工作线程中执行                              */
+void btn_work_handler(struct k_work *work) {
+    int val = gpio_pin_get_dt(&amp;btn);
+    if (val) {
+        /* 确认按键真的按下了 — 这里可以 sleep、加锁、printk */
+        k_mutex_lock(&amp;some_lock, K_MSEC(100));
+        handle_button_press();
+        k_mutex_unlock(&amp;some_lock);
+    }
+}
+
+/* Top Half — ISR，越快越好                                    */
+void btn_isr(const struct device *dev, struct gpio_callback *cb,
+             uint32_t pins) {
+    /* 只做两件事：提交延迟工作（消抖） */
+    k_work_schedule(&amp;debounce_work, K_MSEC(30));
+}
+
+void main(void) {
+    gpio_pin_configure_dt(&amp;btn, GPIO_INPUT);
+    gpio_pin_interrupt_configure_dt(&amp;btn, GPIO_INT_EDGE_TO_ACTIVE);
+
+    gpio_init_callback(&amp;btn_cb, btn_isr, BIT(btn.pin));
+    gpio_add_callback(btn.port, &amp;btn_cb);
+    k_work_init_delayable(&amp;debounce_work, btn_work_handler);
+
+    while (1) { k_msleep(1000); }
+}</code></pre>
+
+          <div class="callout warn">
+            <span class="callout-icon">&#9888;&#65039;</span>
+            <span><strong>常见踩坑：</strong>GPIO 中断回调中调 <code>printk</code> 打日志是新手最常见的错误。ISR 中长时间持有 CPU 会导致其他中断丢失、系统 tick 不准。永远记住：ISR 只发信号，不做处理。</span>
+          </div>
+
+          <div class="tags"><span class="tag">中断</span><span class="tag">ISR</span><span class="tag">回调</span><span class="tag">工作队列</span><span class="tag">k_poll</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
