@@ -1547,229 +1547,6 @@ led0 {
     </div>
   </section>
 
-  <!-- ═══════════ CAN ═══════════ -->
-  <section class="topic-section topic-can" data-topic="can" id="sec-can">
-    <h2><span class="icon icon-can">C</span> CAN 总线</h2>
-    <div class="qa-list">
-
-      <!-- CAN-1: API 概述 -->
-      <div class="qa-card" data-topics="can" id="qa-can-1">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">CAN 控制器的 API 有哪两种风格？分别适用于什么场景？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p><strong>Zephyr 3.7 LTS 提供两套 CAN API：</strong></p>
-
-          <div class="two-paths">
-            <div class="path-card" style="border-top:3px solid #10b981;">
-              <div class="path-card-header">CAN 原生 API（总线层）</div>
-              <div class="path-card-body">
-                <pre><code>#include &lt;zephyr/drivers/can.h&gt;
-
-can_send(dev, &amp;frame, timeout, cb, arg);
-can_add_rx_filter(dev, cb, arg, &amp;filter);
-can_set_bitrate(dev, 500000);
-can_start(dev);</code></pre>
-                <p style="font-size:0.78rem;color:var(--text-secondary);">直接操作 CAN 控制器硬件，用于无操作系统或需要精确控制 CAN 帧的场景</p>
-              </div>
-            </div>
-            <div class="path-card" style="border-top:3px solid #3b82f6;">
-              <div class="path-card-header">SocketCAN API（网络层）</div>
-              <div class="path-card-body">
-                <pre><code>#include &lt;zephyr/net/socketcan.h&gt;
-
-int fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-bind(fd, &amp;addr, sizeof(addr));
-write(fd, &amp;frame, sizeof(frame)); /* 发送 */
-read(fd, &amp;frame, sizeof(frame));  /* 接收 */</code></pre>
-                <p style="font-size:0.78rem;color:var(--text-secondary);">与 Linux SocketCAN 兼容，用于需要与 Linux 系统互操作的场景</p>
-              </div>
-            </div>
-          </div>
-
-          <p><strong>选哪个？</strong></p>
-          <ul>
-            <li>裸机/Zephyr 单机 → CAN 原生 API（更轻量）</li>
-            <li>与 Linux 上位机通信、移植 Linux 代码 → SocketCAN API（兼容性好）</li>
-            <li>SocketCAN 底层也调用原生 CAN 驱动，两者可共存</li>
-          </ul>
-
-          <div class="tags"><span class="tag">API</span><span class="tag">SocketCAN</span><span class="tag">can_send</span></div>
-        </div>
-      </div>
-
-      <!-- CAN-2: 核心结构体 -->
-      <div class="qa-card" data-topics="can" id="qa-can-2">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">CAN 帧结构体和过滤器是如何定义的？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p><strong>CAN 帧结构体（can_frame）：</strong></p>
-          <pre><code>struct can_frame {
-    canid_t id;           /* 11-bit 或 29-bit 帧 ID              */
-    uint8_t data[8];      /* 数据载荷，最多 8 字节 (CAN FD: 64)   */
-    uint8_t dlc;          /* 数据长度码 (0-8 / 9-15 表示特殊值)  */
-    uint8_t flags;        /* 帧标志 — IDE/RTR/FD/BRS/ESI         */
-};
-
-/* flags 常用值 */
-CAN_FRAME_IDE   /* 扩展 ID (29-bit)           */
-CAN_FRAME_RTR   /* 远程帧请求                  */
-CAN_FRAME_FDF   /* CAN FD 帧                  */
-CAN_FRAME_BRS   /* CAN FD 高速数据阶段          */</code></pre>
-
-          <p><strong>CAN 过滤器（can_filter）：</strong></p>
-          <pre><code>struct can_filter {
-    canid_t id;          /* 要匹配的 CAN ID                    */
-    canid_t mask;        /* 掩码：1 = 该位需匹配，0 = 不关心   */
-    uint8_t flags;       /* CAN_FILTER_IDE 表示匹配扩展帧      */
-};
-
-/* 例子：匹配 ID 0x100 ~ 0x1FF 的所有标准帧 */
-struct can_filter filter = {
-    .id   = 0x100,
-    .mask = 0xF00,       /* 只有高4位需要匹配                 */
-    .flags = 0           /* 标准帧                            */
-};
-
-/* 精确匹配 ID 0x123 */
-struct can_filter exact = {
-    .id   = 0x123,
-    .mask = CAN_EXT_ID_MASK,  /* 所有位都要匹配                */
-};</code></pre>
-
-          <div class="tags"><span class="tag">can_frame</span><span class="tag">can_filter</span><span class="tag">数据结构</span></div>
-        </div>
-      </div>
-
-      <!-- CAN-3: 收发流程 -->
-      <div class="qa-card" data-topics="can" id="qa-can-3">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">CAN 总线使用的完整流程是怎样的？发送和接收分别怎么处理？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p><strong>设备树配置：</strong></p>
-          <pre><code>/* 以 STM32F4 bxCAN 为例 */
-&amp;can1 {
-    pinctrl-0 = &lt;&amp;can1_rx_pd0 &amp;can1_tx_pd1&gt;;
-    pinctrl-names = "default";
-    bitrate = &lt;500000&gt;;
-    sample-point = &lt;875&gt;;    /* 87.5% 采样点 */
-    status = "okay";
-};</code></pre>
-
-          <p><strong>完整收发代码：</strong></p>
-          <pre><code>#include &lt;zephyr/drivers/can.h&gt;
-#include &lt;zephyr/kernel.h&gt;
-
-const struct device *can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_can));
-
-/* ── 接收回调（在中断上下文中执行） ── */
-CAN_MSGQ_DEFINE(can_msgq, 10); /* 消息队列，缓冲接收帧 */
-static struct k_work can_rx_work;
-
-void can_rx_cb(const struct device *dev, struct can_frame *frame,
-               void *user_data)
-{
-    /* 快速丢到队列里就返回，不在中断里处理 */
-    struct can_frame *copy = k_malloc(sizeof(*frame));
-    if (copy) memcpy(copy, frame, sizeof(*frame));
-    k_msgq_put(can_msgq, &amp;copy, K_NO_WAIT);
-    k_work_submit(&amp;can_rx_work);
-}
-
-void can_rx_work_handler(struct k_work *work)
-{
-    struct can_frame *frame;
-    while (k_msgq_get(can_msgq, &amp;frame, K_NO_WAIT) == 0) {
-        /* 在主线程上下文处理收到的帧 */
-        if (frame->data[0] == 0x01) { /* 根据协议解析 */ }
-        k_free(frame);
-    }
-}
-
-void main(void)
-{
-    const struct can_filter rx_filter = {
-        .id = 0x100, .mask = 0x700,
-    };
-
-    can_set_bitrate(can_dev, 500000);
-    can_set_mode(can_dev, CAN_MODE_NORMAL);
-    can_start(can_dev);
-
-    can_add_rx_filter(can_dev, can_rx_cb, NULL, &amp;rx_filter);
-    k_work_init(&amp;can_rx_work, can_rx_work_handler);
-
-    /* 发送一帧 */
-    struct can_frame tx_frame = {
-        .id = 0x200,
-        .data = {0x01, 0x02, 0x03},
-        .dlc = 3,
-    };
-    can_send(can_dev, &amp;tx_frame, K_MSEC(100),
-             NULL, NULL);   /* 100ms 超时，阻塞发送 */
-
-    while (1) { k_msleep(1000); }
-}</code></pre>
-
-          <p><strong>设备树中获取 CAN 控制器有多种方式：</strong></p>
-          <pre><code>/* 方式一：chosen 节点（推荐） */
-DT_CHOSEN(zephyr_can)
-
-/* 方式二：直接指定标签 */
-DEVICE_DT_GET(DT_NODELABEL(can1))
-
-/* 方式三：手动指定节点 */
-DEVICE_DT_GET(DT_PATH(soc, can, 40006400))</code></pre>
-
-          <div class="tags"><span class="tag">发送</span><span class="tag">接收</span><span class="tag">过滤器</span><span class="tag">中断</span></div>
-        </div>
-      </div>
-
-      <!-- CAN-4: 平台差异 -->
-      <div class="qa-card" data-topics="can" id="qa-can-4">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">不同平台（STM32F1/F4/H7、ESP32）的 CAN 驱动有什么区别？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <table class="props">
-            <thead><tr><th>平台</th><th>驱动</th><th>CAN FD 支持</th><th>compatible</th><th>备注</th></tr></thead>
-            <tbody>
-              <tr><td>STM32F1/F4</td><td>bxCAN</td><td>不支持</td><td><code>st,stm32-bxcan</code></td><td>经典 CAN 2.0B，14 个过滤器</td></tr>
-              <tr><td>STM32H7</td><td>M_CAN (Bosch)</td><td>支持</td><td><code>bosch,mcan</code></td><td>CAN FD + 经典 CAN，与 STM32G4/G0 共用</td></tr>
-              <tr><td>ESP32-S3</td><td>TWAI</td><td>不支持</td><td><code>espressif,esp32-twai</code></td><td>兼容 SJA1000，注意 TWAI 时钟问题</td></tr>
-            </tbody>
-          </table>
-
-          <p><strong>STM32F4 bxCAN 注意事项：</strong></p>
-          <ul>
-            <li>过滤器是硬件资源，数量有限（14 个），需要合理分配</li>
-            <li>bitrate 和 sample-point 需要精确匹配 CAN 时钟频率</li>
-            <li>中断线共享 — 多个 CAN 外设可能共享同一中断向量</li>
-          </ul>
-
-          <p><strong>ESP32 TWAI 注意事项：</strong></p>
-          <ul>
-            <li>收发引脚通过 <code>tx-pin</code> / <code>rx-pin</code> 指定（GPIO Matrix 自动路由）</li>
-            <li>内部有 64 字节硬件 FIFO，但不支持多个硬件过滤器</li>
-            <li>时钟源配置不当会导致波特率偏差，建议用外部晶振</li>
-          </ul>
-
-          <div class="tags"><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">bxCAN</span><span class="tag">M_CAN</span><span class="tag">TWAI</span></div>
-        </div>
-      </div>
-
-    </div>
-  </section>
 
   <!-- ═══════════ PWM ═══════════ -->
   <section class="topic-section topic-pwm" data-topic="pwm" id="sec-pwm">
@@ -2409,6 +2186,229 @@ uart_rx_enable(uart, rx_buf, sizeof(rx_buf), 50); /* 50ms 字节间超时 */</co
     </div>
   </section>
 
+  <!-- ═══════════ CAN ═══════════ -->
+  <section class="topic-section topic-can" data-topic="can" id="sec-can">
+    <h2><span class="icon icon-can">C</span> CAN 总线</h2>
+    <div class="qa-list">
+
+      <!-- CAN-1: API 概述 -->
+      <div class="qa-card" data-topics="can" id="qa-can-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CAN 控制器的 API 有哪两种风格？分别适用于什么场景？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Zephyr 3.7 LTS 提供两套 CAN API：</strong></p>
+
+          <div class="two-paths">
+            <div class="path-card" style="border-top:3px solid #10b981;">
+              <div class="path-card-header">CAN 原生 API（总线层）</div>
+              <div class="path-card-body">
+                <pre><code>#include &lt;zephyr/drivers/can.h&gt;
+
+can_send(dev, &amp;frame, timeout, cb, arg);
+can_add_rx_filter(dev, cb, arg, &amp;filter);
+can_set_bitrate(dev, 500000);
+can_start(dev);</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">直接操作 CAN 控制器硬件，用于无操作系统或需要精确控制 CAN 帧的场景</p>
+              </div>
+            </div>
+            <div class="path-card" style="border-top:3px solid #3b82f6;">
+              <div class="path-card-header">SocketCAN API（网络层）</div>
+              <div class="path-card-body">
+                <pre><code>#include &lt;zephyr/net/socketcan.h&gt;
+
+int fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+bind(fd, &amp;addr, sizeof(addr));
+write(fd, &amp;frame, sizeof(frame)); /* 发送 */
+read(fd, &amp;frame, sizeof(frame));  /* 接收 */</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">与 Linux SocketCAN 兼容，用于需要与 Linux 系统互操作的场景</p>
+              </div>
+            </div>
+          </div>
+
+          <p><strong>选哪个？</strong></p>
+          <ul>
+            <li>裸机/Zephyr 单机 → CAN 原生 API（更轻量）</li>
+            <li>与 Linux 上位机通信、移植 Linux 代码 → SocketCAN API（兼容性好）</li>
+            <li>SocketCAN 底层也调用原生 CAN 驱动，两者可共存</li>
+          </ul>
+
+          <div class="tags"><span class="tag">API</span><span class="tag">SocketCAN</span><span class="tag">can_send</span></div>
+        </div>
+      </div>
+
+      <!-- CAN-2: 核心结构体 -->
+      <div class="qa-card" data-topics="can" id="qa-can-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CAN 帧结构体和过滤器是如何定义的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>CAN 帧结构体（can_frame）：</strong></p>
+          <pre><code>struct can_frame {
+    canid_t id;           /* 11-bit 或 29-bit 帧 ID              */
+    uint8_t data[8];      /* 数据载荷，最多 8 字节 (CAN FD: 64)   */
+    uint8_t dlc;          /* 数据长度码 (0-8 / 9-15 表示特殊值)  */
+    uint8_t flags;        /* 帧标志 — IDE/RTR/FD/BRS/ESI         */
+};
+
+/* flags 常用值 */
+CAN_FRAME_IDE   /* 扩展 ID (29-bit)           */
+CAN_FRAME_RTR   /* 远程帧请求                  */
+CAN_FRAME_FDF   /* CAN FD 帧                  */
+CAN_FRAME_BRS   /* CAN FD 高速数据阶段          */</code></pre>
+
+          <p><strong>CAN 过滤器（can_filter）：</strong></p>
+          <pre><code>struct can_filter {
+    canid_t id;          /* 要匹配的 CAN ID                    */
+    canid_t mask;        /* 掩码：1 = 该位需匹配，0 = 不关心   */
+    uint8_t flags;       /* CAN_FILTER_IDE 表示匹配扩展帧      */
+};
+
+/* 例子：匹配 ID 0x100 ~ 0x1FF 的所有标准帧 */
+struct can_filter filter = {
+    .id   = 0x100,
+    .mask = 0xF00,       /* 只有高4位需要匹配                 */
+    .flags = 0           /* 标准帧                            */
+};
+
+/* 精确匹配 ID 0x123 */
+struct can_filter exact = {
+    .id   = 0x123,
+    .mask = CAN_EXT_ID_MASK,  /* 所有位都要匹配                */
+};</code></pre>
+
+          <div class="tags"><span class="tag">can_frame</span><span class="tag">can_filter</span><span class="tag">数据结构</span></div>
+        </div>
+      </div>
+
+      <!-- CAN-3: 收发流程 -->
+      <div class="qa-card" data-topics="can" id="qa-can-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CAN 总线使用的完整流程是怎样的？发送和接收分别怎么处理？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树配置：</strong></p>
+          <pre><code>/* 以 STM32F4 bxCAN 为例 */
+&amp;can1 {
+    pinctrl-0 = &lt;&amp;can1_rx_pd0 &amp;can1_tx_pd1&gt;;
+    pinctrl-names = "default";
+    bitrate = &lt;500000&gt;;
+    sample-point = &lt;875&gt;;    /* 87.5% 采样点 */
+    status = "okay";
+};</code></pre>
+
+          <p><strong>完整收发代码：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/can.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+const struct device *can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_can));
+
+/* ── 接收回调（在中断上下文中执行） ── */
+CAN_MSGQ_DEFINE(can_msgq, 10); /* 消息队列，缓冲接收帧 */
+static struct k_work can_rx_work;
+
+void can_rx_cb(const struct device *dev, struct can_frame *frame,
+               void *user_data)
+{
+    /* 快速丢到队列里就返回，不在中断里处理 */
+    struct can_frame *copy = k_malloc(sizeof(*frame));
+    if (copy) memcpy(copy, frame, sizeof(*frame));
+    k_msgq_put(can_msgq, &amp;copy, K_NO_WAIT);
+    k_work_submit(&amp;can_rx_work);
+}
+
+void can_rx_work_handler(struct k_work *work)
+{
+    struct can_frame *frame;
+    while (k_msgq_get(can_msgq, &amp;frame, K_NO_WAIT) == 0) {
+        /* 在主线程上下文处理收到的帧 */
+        if (frame->data[0] == 0x01) { /* 根据协议解析 */ }
+        k_free(frame);
+    }
+}
+
+void main(void)
+{
+    const struct can_filter rx_filter = {
+        .id = 0x100, .mask = 0x700,
+    };
+
+    can_set_bitrate(can_dev, 500000);
+    can_set_mode(can_dev, CAN_MODE_NORMAL);
+    can_start(can_dev);
+
+    can_add_rx_filter(can_dev, can_rx_cb, NULL, &amp;rx_filter);
+    k_work_init(&amp;can_rx_work, can_rx_work_handler);
+
+    /* 发送一帧 */
+    struct can_frame tx_frame = {
+        .id = 0x200,
+        .data = {0x01, 0x02, 0x03},
+        .dlc = 3,
+    };
+    can_send(can_dev, &amp;tx_frame, K_MSEC(100),
+             NULL, NULL);   /* 100ms 超时，阻塞发送 */
+
+    while (1) { k_msleep(1000); }
+}</code></pre>
+
+          <p><strong>设备树中获取 CAN 控制器有多种方式：</strong></p>
+          <pre><code>/* 方式一：chosen 节点（推荐） */
+DT_CHOSEN(zephyr_can)
+
+/* 方式二：直接指定标签 */
+DEVICE_DT_GET(DT_NODELABEL(can1))
+
+/* 方式三：手动指定节点 */
+DEVICE_DT_GET(DT_PATH(soc, can, 40006400))</code></pre>
+
+          <div class="tags"><span class="tag">发送</span><span class="tag">接收</span><span class="tag">过滤器</span><span class="tag">中断</span></div>
+        </div>
+      </div>
+
+      <!-- CAN-4: 平台差异 -->
+      <div class="qa-card" data-topics="can" id="qa-can-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">不同平台（STM32F1/F4/H7、ESP32）的 CAN 驱动有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <table class="props">
+            <thead><tr><th>平台</th><th>驱动</th><th>CAN FD 支持</th><th>compatible</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td>STM32F1/F4</td><td>bxCAN</td><td>不支持</td><td><code>st,stm32-bxcan</code></td><td>经典 CAN 2.0B，14 个过滤器</td></tr>
+              <tr><td>STM32H7</td><td>M_CAN (Bosch)</td><td>支持</td><td><code>bosch,mcan</code></td><td>CAN FD + 经典 CAN，与 STM32G4/G0 共用</td></tr>
+              <tr><td>ESP32-S3</td><td>TWAI</td><td>不支持</td><td><code>espressif,esp32-twai</code></td><td>兼容 SJA1000，注意 TWAI 时钟问题</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>STM32F4 bxCAN 注意事项：</strong></p>
+          <ul>
+            <li>过滤器是硬件资源，数量有限（14 个），需要合理分配</li>
+            <li>bitrate 和 sample-point 需要精确匹配 CAN 时钟频率</li>
+            <li>中断线共享 — 多个 CAN 外设可能共享同一中断向量</li>
+          </ul>
+
+          <p><strong>ESP32 TWAI 注意事项：</strong></p>
+          <ul>
+            <li>收发引脚通过 <code>tx-pin</code> / <code>rx-pin</code> 指定（GPIO Matrix 自动路由）</li>
+            <li>内部有 64 字节硬件 FIFO，但不支持多个硬件过滤器</li>
+            <li>时钟源配置不当会导致波特率偏差，建议用外部晶振</li>
+          </ul>
+
+          <div class="tags"><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">bxCAN</span><span class="tag">M_CAN</span><span class="tag">TWAI</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
   <!-- ═══════════ Timer ═══════════ -->
   <section class="topic-section topic-timer" data-topic="timer" id="sec-timer">
     <h2><span class="icon icon-timer">T</span> 定时器</h2>
