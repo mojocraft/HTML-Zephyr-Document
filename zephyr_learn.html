@@ -2688,6 +2688,147 @@ duplex = &lt;0x800&gt;;  /* SPI_FULL_DUPLEX */</code></pre>
         </div>
       </div>
 
+      <!-- SPI-3: ST7789V 显示屏实战 -->
+      <div class="qa-card" data-topics="spi" id="qa-spi-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ST7789V 显示屏通过 SPI 驱动的完整工程流程是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>ST7789V 使用 MIPI DBI 协议通过 SPI 通信</strong>，Zephyr 提供了专门的驱动框架：</p>
+
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">1</span><div class="layer-label">设备树 .overlay</div><div class="layer-desc">定义 SPI 总线 + MIPI DBI 控制器 + ST7789V 面板，配置引脚和初始化参数</div></div>
+            <div class="layer layer-mid"><span class="layer-num">2</span><div class="layer-label">prj.conf</div><div class="layer-desc">启用 CONFIG_DISPLAY + CONFIG_ST7789V + CONFIG_MIPI_DBI + CONFIG_MIPI_DBI_SPI</div></div>
+            <div class="layer layer-bot"><span class="layer-num">3</span><div class="layer-label">C 代码</div><div class="layer-desc">DEVICE_DT_GET() 获取设备 → display_blanking_off() 点亮 → display_write() 写像素</div></div>
+          </div>
+
+          <p><strong>第一步：设备树（.overlay 或 .dts）</strong></p>
+          <pre><code>/* 1. SPI 总线 */
+&amp;spi2 {
+    status = "okay";
+    pinctrl-0 = &lt;&amp;spi2_sck_pb13 &amp;spi2_miso_pb14 &amp;spi2_mosi_pb15&gt;;
+    pinctrl-names = "default";
+    cs-gpios = &lt;&amp;gpiob 12 GPIO_ACTIVE_LOW&gt;;
+};
+
+/* 2. MIPI DBI SPI 控制器 + ST7789V 面板 */
+mipi_dbi_st7789: mipi_dbi_st7789 {
+    compatible = "zephyr,mipi-dbi-spi";
+    spi-dev = &lt;&amp;spi2&gt;;                       /* 绑定到 SPI2               */
+    dc-gpios = &lt;&amp;gpioh 7 GPIO_ACTIVE_HIGH&gt;;  /* Data/Command 引脚          */
+    reset-gpios = &lt;&amp;gpioh 8 GPIO_ACTIVE_LOW&gt;; /* 复位引脚                   */
+    write-only;                                /* 只写（MISO 未连接）        */
+    #address-cells = &lt;1&gt;;
+    #size-cells = &lt;0&gt;;
+
+    st7789v_display: st7789v@0 {
+        compatible = "sitronix,st7789v";
+        reg = &lt;0&gt;;                            /* CS 线 0                   */
+        mipi-max-frequency = &lt;25000000&gt;;      /* 最大 SPI 时钟 25MHz       */
+        mipi-mode = &lt;2&gt;;                      /* MIPI_DBI_MODE_SPI_4WIRE   */
+
+        width = &lt;240&gt;;                        /* 分辨率                    */
+        height = &lt;320&gt;;
+        x-offset = &lt;0&gt;;
+        y-offset = &lt;0&gt;;
+
+        /* 以下是 ST7789V 初始化寄存器参数（来自厂商 datasheet） */
+        vcom = &lt;0x32&gt;;
+        gctrl = &lt;0x35&gt;;
+        vrhs = &lt;0x0B&gt;;
+        vdvs = &lt;0x20&gt;;
+        colmod = &lt;0x55&gt;;                      /* 16-bit/pixel RGB565      */
+
+        porch-param  = [0C 0C 00 33 33];      /* 前后肩参数（hex 数组）     */
+        cmd2en-param = [5A 69 02 01];
+        pvgam-param  = [D0 04 0D 11 13 2B 3F 54 4C 18 0D 0B 1F 23];  /* 正伽马 */
+        nvgam-param  = [D0 04 0C 11 13 2C 3F 44 51 2F 1F 1F 20 23];  /* 负伽马 */
+    };
+};
+
+/* 3. 背光 GPIO（独立控制） */
+/ {
+    lcd {
+        compatible = "gpio-leds";
+        lcdbacklight: lcd_bl {
+            gpios = &lt;&amp;gpioh 9 GPIO_ACTIVE_HIGH&gt;;
+        };
+    };
+};
+
+/* 4. chosen 指向 display */
+/ {
+    chosen {
+        zephyr,display = &amp;st7789v_display;
+    };
+};</code></pre>
+
+          <p><strong>第二步：prj.conf</strong></p>
+          <pre><code># MIPI DBI 总线层
+CONFIG_MIPI_DBI=y
+CONFIG_MIPI_DBI_SPI=y
+
+# 显示子系统 + ST7789V 驱动
+CONFIG_DISPLAY=y
+CONFIG_ST7789V=y
+
+# 确保不冲突的驱动被关闭
+CONFIG_ILI9341=n</code></pre>
+
+          <p><strong>第三步：C 代码</strong></p>
+          <pre><code>#include &lt;zephyr/device.h&gt;
+#include &lt;zephyr/drivers/display.h&gt;
+#include &lt;zephyr/drivers/gpio.h&gt;
+
+/* 从 DT 获取 display 设备（chosen 节点）               */
+const struct device *display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+
+/* 背光 GPIO                                           */
+static const struct gpio_dt_spec backlight =
+    GPIO_DT_SPEC_GET(DT_ALIAS(lcd_bl), gpios);
+
+void lcd_init(void)
+{
+    if (!device_is_ready(display)) return;
+
+    /* 1. 写全黑像素到 GRAM（防止上电花屏）              */
+    struct display_buffer_descriptor buf_desc = {
+        .buf_size = 240 * 320 * 2,    /* RGB565 = 2 bytes/px */
+        .width = 240, .height = 320,
+        .pitch = 240,
+    };
+    uint8_t black[240 * 160];         /* 一帧太大会栈溢出，分批写 */
+    memset(black, 0, sizeof(black));
+    display_write(display, 0, 0, &amp;buf_desc, black);
+
+    /* 2. 打开显示输出                                    */
+    display_blanking_off(display);
+
+    /* 3. 打开背光                                       */
+    gpio_pin_configure_dt(&amp;backlight, GPIO_OUTPUT_ACTIVE);
+    gpio_pin_set_dt(&amp;backlight, 1);
+}
+
+/* 写一帧像素                                          */
+void lcd_write_pixels(const uint8_t *pixels, size_t len)
+{
+    struct display_buffer_descriptor desc = {
+        .buf_size = len, .width = 240, .height = 320, .pitch = 240,
+    };
+    display_write(display, 0, 0, &amp;desc, pixels);
+}</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>架构要点：</strong>ST7789V 不走 <code>spi_write()</code> API，而是通过 <strong>MIPI DBI 框架</strong>。设备树中 <code>zephyr,mipi-dbi-spi</code> 是 SPI 传输层，<code>sitronix,st7789v</code> 是面板驱动。C 代码只调用 <code>display_write()</code> 等通用 display API，底层 MIPI DBI 自动处理 DC 引脚切换和 SPI 传输。</span>
+          </div>
+
+          <div class="tags"><span class="tag">ST7789V</span><span class="tag">MIPI DBI</span><span class="tag">display</span><span class="tag">SPI</span><span class="tag">实战</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
