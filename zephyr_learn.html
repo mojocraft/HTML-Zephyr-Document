@@ -274,6 +274,7 @@
     <button class="btn" onclick="filterBy('uart')" data-filter="uart">UART</button>
     <button class="btn" onclick="filterBy('timer')" data-filter="timer">Timer</button>
     <button class="btn" onclick="filterBy('dma')" data-filter="dma">DMA</button>
+    <button class="btn" onclick="filterBy('fundamentals')" data-filter="fundamentals">基础</button>
     <button class="btn" onclick="filterBy('thread')" data-filter="thread">线程</button>
   </div>
 
@@ -285,6 +286,77 @@
   复制整个 qa-card 块来添加新问答。
   ════════════════════════════════════════════
   -->
+
+  <!-- ────────── 基础概念 ────────── -->
+  <section class="topic-section topic-gpio" data-topic="fundamentals" id="sec-fundamentals">
+    <h2><span class="icon icon-gpio">F</span> 基础概念</h2>
+    <div class="qa-list">
+
+      <div class="qa-card" data-topics="fundamentals gpio can uart spi i2c" id="qa-fund-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">引脚使用中，pinctrl 和 GPIO 以及外设（UART/CAN/SPI）的关系是怎样的？什么情况下需要写 pinctrl？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>一句话：pinctrl 决定"这个引脚用来干什么"，GPIO 是其中一种"干什么"的选项。</strong></p>
+
+          <p><strong>三层架构：</strong></p>
+          <pre><code>┌──────────────────────────────────────┐
+│  外设驱动 (UART/CAN/SPI/I²C)          │  ← 使用引脚，不关心引脚物理细节
+├──────────────────────────────────────┤
+│  pinctrl (pin control)               │  ← 把引脚分配给外设，配置电气属性
+├──────────────────────────────────────┤
+│  GPIO (通用输入输出)                   │  ← 直接操控引脚电平
+└──────────────────────────────────────┘</code></pre>
+          <p>一个物理引脚同一时刻只能做一件事：要么是 UART_TX，要么是 CAN_RX，要么是普通 GPIO。<strong>pinctrl 就是负责做这个选择的</strong>。</p>
+
+          <p><strong>什么时候需要写 pinctrl？</strong></p>
+          <ul>
+            <li><strong>STM32 — 必须写：</strong>STM32 的引脚功能由 AF（Alternate Function）寄存器决定。用 USART3_TX 必须把对应引脚的 AF 设为 AF7。</li>
+            <li><strong>ESP32-S3 — 通常不需要显式写：</strong>ESP32 有 GPIO Matrix，几乎所有外设信号可以路由到任意 GPIO，驱动内部自动完成路由。只有需要 IO MUX（更低延迟）或特殊电气属性时才手动写。</li>
+            <li><strong>电气属性 — 总是 pinctrl 的职责：</strong>上下拉、驱动强度、压摆率等，无论 STM32 还是 ESP32 都属于 pinctrl 范畴。</li>
+          </ul>
+
+          <p><strong>STM32 示例（必须显式 pinctrl）：</strong></p>
+          <pre><code>/* STM32: 必须显式配置 pinctrl */
+&amp;usart3 {
+    pinctrl-0 = &lt;&amp;usart3_tx_pc10 &amp;usart3_rx_pc11&gt;;
+    pinctrl-names = "default";
+};
+
+&amp;pinctrl {
+    usart3_tx_pc10: usart3_tx_pc10 {
+        pinmux = &lt;STM32_PINMUX('C', 10, AF7)&gt;;  /* AF7 = USART3_TX */
+    };
+    usart3_rx_pc11: usart3_rx_pc11 {
+        pinmux = &lt;STM32_PINMUX('C', 11, AF7)&gt;;
+    };
+};</code></pre>
+
+          <p><strong>ESP32-S3 示例（通常简化）：</strong></p>
+          <pre><code>/* ESP32-S3: 通常只写这个就够了，驱动内部自动做 pinmux */
+&amp;uart0 {
+    tx-pin = &lt;43&gt;;
+    rx-pin = &lt;44&gt;;
+};</code></pre>
+
+          <p><strong>外设 vs GPIO vs pinctrl 关系总结：</strong></p>
+          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
+            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">层级</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">负责什么</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">STM32</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">ESP32</th></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">pinctrl</td><td style="padding:6px 10px; border:1px solid #dee2e6;">引脚功能选择 + 上下拉/驱动强度</td><td style="padding:6px 10px; border:1px solid #dee2e6;">必须写 pinmux，指定 AF</td><td style="padding:6px 10px; border:1px solid #dee2e6;">驱动自动处理，电气属性可加</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">GPIO</td><td style="padding:6px 10px; border:1px solid #dee2e6;">直接读写引脚、中断</td><td style="padding:6px 10px; border:1px solid #dee2e6;">gpio_pin_set() / gpio_pin_interrupt()</td><td style="padding:6px 10px; border:1px solid #dee2e6;">同左</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">外设</td><td style="padding:6px 10px; border:1px solid #dee2e6;">高层协议操作</td><td style="padding:6px 10px; border:1px solid #dee2e6;">uart_tx() / can_send()</td><td style="padding:6px 10px; border:1px solid #dee2e6;">同左</td></tr>
+          </table>
+
+          <p><strong>关键约束：</strong>一个引脚的归属链路是 pinctrl 决定它属于谁 → 外设驱动使用它 → 你不能同时拿它当 GPIO。如果 CAN_RX 引脚已经分配给 CAN 控制器，就不能用 gpio_pin_get() 去读它，除非先把引脚从 CAN 断开重新 pinctrl 切回 GPIO 模式。</p>
+
+          <div class="tags"><span class="tag">pinctrl</span><span class="tag">GPIO</span><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">devicetree</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- ────────── GPIO ────────── -->
   <section class="topic-section topic-gpio" data-topic="gpio" id="sec-gpio">
