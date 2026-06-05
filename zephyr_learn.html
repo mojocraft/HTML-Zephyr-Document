@@ -3243,7 +3243,7 @@ document.getElementById('toc').addEventListener('click', (e) => {
   const ctx = canvas.getContext('2d');
   const cursor = document.getElementById('cyberCursor');
   const select = document.getElementById('cursorSelect');
-  let mode = localStorage.getItem('cursor-mode') || 'matrix';
+  let mode = localStorage.getItem('cursor-mode') || 'none';
   select.value = mode;
   let animId, mx = -100, my = -100;
   const particles = [];
