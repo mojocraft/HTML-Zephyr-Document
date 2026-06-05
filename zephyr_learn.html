@@ -2488,6 +2488,150 @@ adc_read_async(adc.dev, &amp;seq, adc_done, NULL);</code></pre>
         </div>
       </div>
 
+      <!-- ADC-4: DMA 异步采样实战 -->
+      <div class="qa-card" data-topics="adc" id="qa-adc-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ADC DMA 异步多通道采样的实战工程流程是怎样的？如何同时管理两个 ADC 控制器？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>实战架构：两个 ADC 控制器共 24 通道，DMA 自动扫描，专用线程收集数据：</strong></p>
+
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">1</span><div class="layer-label">设备树</div><div class="layer-desc">ADC1(16ch) + ADC3(8ch) 各绑定一个 DMA 流，配置分辨率/采样时间/引脚</div></div>
+            <div class="layer layer-mid"><span class="layer-num">2</span><div class="layer-label">prj.conf</div><div class="layer-desc">CONFIG_ADC_ASYNC + CONFIG_ADC_STM32_DMA + CONFIG_DMA_STM32</div></div>
+            <div class="layer layer-mid"><span class="layer-num">3</span><div class="layer-label">采集线程</div><div class="layer-desc">adc_read_async() + k_poll() 等待 DMA 完成，互斥锁保护共享数据</div></div>
+            <div class="layer layer-bot"><span class="layer-num">4</span><div class="layer-label">消费者 API</div><div class="layer-desc">信号量通知 + 线程安全快照，无需关心 DMA 细节</div></div>
+          </div>
+
+          <p><strong>第一步：设备树（两个 ADC + DMA）</strong></p>
+          <pre><code>/* DMA2 控制器启用 */
+&amp;dma2 { status = "okay"; };
+
+/* ADC1 — 16 通道，DMA2 Stream0 Channel0 */
+&amp;adc1 {
+    status = "okay";
+    st,adc-prescaler = &lt;2&gt;;
+    sampling-times = &lt;3 15 28 56 84 112 144 480&gt;;
+
+    channel@0 { reg = &lt;0&gt;;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,resolution = &lt;12&gt;;
+        zephyr,acquisition-time = &lt;ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 144)&gt;;
+    };
+    /* channel@1 ~ channel@15 同理 */
+
+    pinctrl-0 = &lt;&amp;adc1_in0_pa0 &amp;adc1_in1_pa1 /* ... */ &amp;adc1_in15_pc5&gt;;
+    pinctrl-names = "default";
+
+    dmas = &lt;&amp;dma2 0 0 (STM32_DMA_PERIPH_RX | STM32_DMA_16BITS) 0&gt;;
+    dma-names = "rx";
+};
+
+/* ADC3 — 8 通道，DMA2 Stream1 Channel2 */
+&amp;adc3 {
+    status = "okay";
+    st,adc-prescaler = &lt;2&gt;;
+
+    channel@4 { reg = &lt;4&gt;; /* ... */ };
+    /* channel@5 ~ channel@15（仅用 8 个） */
+
+    dmas = &lt;&amp;dma2 1 2 (STM32_DMA_PERIPH_RX | STM32_DMA_16BITS) 0&gt;;
+    dma-names = "rx";
+};</code></pre>
+
+          <p><strong>第二步：prj.conf</strong></p>
+          <pre><code>CONFIG_ADC=y
+CONFIG_ADC_ASYNC=y          # 启用异步 ADC API
+CONFIG_ADC_STM32=y
+CONFIG_ADC_STM32_DMA=y      # STM32 的 DMA 后端
+CONFIG_DMA=y
+CONFIG_DMA_STM32=y</code></pre>
+
+          <p><strong>第三步：采集线程 — k_poll 等待 DMA 完成</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/adc.h&gt;
+
+#define ADC1_CH 16
+#define ADC3_CH 8
+#define TOTAL_CH (ADC1_CH + ADC3_CH)
+
+/* DMA 目标缓冲区 */
+static uint16_t buf_adc1[ADC1_CH];
+static uint16_t buf_adc3[ADC3_CH];
+
+/* 共享输出 — 互斥锁保护 */
+static struct adc_samples {
+    uint16_t values[TOTAL_CH];  /* [0..15]=ADC1, [16..23]=ADC3 */
+} latest;
+K_MUTEX_DEFINE(samples_lock);
+K_SEM_DEFINE(data_ready, 0, 1);
+
+/* 采集线程 — 永不阻塞消费者 */
+void adc_collector_thread(void *, void *, void *)
+{
+    struct k_poll_signal async_sig;
+    k_poll_signal_init(&amp;async_sig);
+
+    struct adc_sequence seq1 = {
+        .buffer = buf_adc1, .buffer_size = sizeof(buf_adc1),
+        .resolution = 12,
+        .channels = (1 &lt;&lt; ADC1_CH) - 1,  /* 0xFFFF — 全部 16 通道 */
+    };
+    struct adc_sequence seq3 = {
+        .buffer = buf_adc3, .buffer_size = sizeof(buf_adc3),
+        .resolution = 12,
+        .channels = BIT(4)|BIT(5)|BIT(6)|BIT(7)|
+                     BIT(8)|BIT(9)|BIT(14)|BIT(15),
+    };
+
+    while (1) {
+        /* 1. 启动 ADC1 DMA 扫描                      */
+        adc_read_async(adc1_dev, &amp;seq1, &amp;async_sig);
+
+        /* 2. k_poll 等待 DMA 完成（线程休眠，零 CPU）  */
+        struct k_poll_event evt = K_POLL_EVENT_INITIALIZER(
+            K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &amp;async_sig);
+        k_poll(&amp;evt, 1, K_FOREVER);
+        k_poll_signal_reset(&amp;async_sig);
+        evt.signal-&gt;signaled = 0;
+
+        /* 3. 启动 ADC3 DMA 扫描                      */
+        adc_read_async(adc3_dev, &amp;seq3, &amp;async_sig);
+        k_poll(&amp;evt, 1, K_FOREVER);
+        k_poll_signal_reset(&amp;async_sig);
+        evt.signal-&gt;signaled = 0;
+
+        /* 4. 合并到共享缓冲区                         */
+        k_mutex_lock(&amp;samples_lock, K_FOREVER);
+        memcpy(latest.values, buf_adc1, sizeof(buf_adc1));
+        memcpy(latest.values + ADC1_CH, buf_adc3, sizeof(buf_adc3));
+        k_mutex_unlock(&amp;samples_lock);
+
+        k_sem_give(&amp;data_ready);  /* 通知消费者         */
+    }
+}
+
+/* 消费者 API — 线程安全快照                        */
+int adc_get_samples(struct adc_samples *out)
+{
+    k_mutex_lock(&amp;samples_lock, K_MSEC(10));
+    if (ret != 0) return -EAGAIN;
+    memcpy(out, &amp;latest, sizeof(latest));
+    k_mutex_unlock(&amp;samples_lock);
+    return 0;
+}</code></pre>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span><strong>架构要点：</strong>ADC 提供的 <code>adc_read_async()</code> 底层用 DMA 完成中断触发 <code>k_poll_signal</code>。应用层完全不需要写 DMA 回调或 ISR — 只需用 <code>k_poll()</code> 等待信号量，线程在 DMA 传输期间处于休眠状态（零 CPU 占用）。两个 ADC 串行扫描，避免 DMA 总线冲突。</span>
+          </div>
+
+          <div class="tags"><span class="tag">ADC</span><span class="tag">DMA</span><span class="tag">异步</span><span class="tag">k_poll</span><span class="tag">多通道</span><span class="tag">实战</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
