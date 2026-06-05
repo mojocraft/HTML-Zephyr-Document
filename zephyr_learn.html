@@ -519,6 +519,56 @@ properties:
         </div>
       </div>
 
+
+      <div class="qa-card" data-topics="fundamentals devicetree" id="qa-fund-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">如何知道 Zephyr 中都有哪些 compatible 可用？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>三个方法，从快到慢：</strong></p>
+
+          <p><strong>方法一：直接搜 binding 文件名（最快）</strong></p>
+          <p>Binding 文件名就是 compatible 去掉逗号加 <code>.yaml</code>：</p>
+          <pre><code>find zephyr/dts/bindings/ -name "*.yaml" | grep -i "关键字"
+# 例：找温度传感器
+# → sensor/ti,tmp108.yaml
+# → sensor/st,stm32-temp.yaml</code></pre>
+
+          <p><strong>方法二：查厂商前缀，精确锁定</strong></p>
+          <p><code>dts/bindings/vendor-prefixes.txt</code> 记录了所有厂商前缀：</p>
+          <pre><code>st          STMicroelectronics
+ti          Texas Instruments
+bosch       Bosch Sensortec
+nordic      Nordic Semiconductor
+solomon     Solomon Systech   ← SSD1306 的厂商</code></pre>
+          <p>知道前缀后直接看对应目录：<code>ls zephyr/dts/bindings/sensor/ | grep st,</code></p>
+
+          <p><strong>方法三：从驱动代码反查（已有芯片时）</strong></p>
+          <pre><code>grep -r "lis2dh" zephyr/drivers/sensor/ --include="*.c"
+# 驱动文件头部注释就有 compatible 信息</code></pre>
+
+          <p><strong>常用设备速查：</strong></p>
+          <table style="width:100%; border-collapse:collapse; margin:8px 0;">
+            <tr style="background:#f1f5f9;"><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">设备类型</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">常见 compatible</th><th style="padding:6px 10px; text-align:left; border:1px solid #dee2e6;">备注</th></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">LED</td><td style="padding:6px 10px; border:1px solid #dee2e6;">gpio-leds</td><td style="padding:6px 10px; border:1px solid #dee2e6;">通用，不需要驱动</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">按键</td><td style="padding:6px 10px; border:1px solid #dee2e6;">gpio-keys</td><td style="padding:6px 10px; border:1px solid #dee2e6;">通用，不需要驱动</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">I²C 温度传感器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">ti,tmp108 / microchip,mcp9808</td><td style="padding:6px 10px; border:1px solid #dee2e6;">都有现成驱动</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">SPI 加速度计</td><td style="padding:6px 10px; border:1px solid #dee2e6;">st,lis2dh / st,lis2dw12</td><td style="padding:6px 10px; border:1px solid #dee2e6;">中断引脚可选</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">I²C OLED 屏</td><td style="padding:6px 10px; border:1px solid #dee2e6;">solomon,ssd1306fb</td><td style="padding:6px 10px; border:1px solid #dee2e6;">128x64 最常见</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">CAN 控制器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">bosch,mcan (STM32H7等) / st,stm32-bxcan (F1/F4) / espressif,esp32-twai (ESP32)</td><td style="padding:6px 10px; border:1px solid #dee2e6;">按 SoC 选</td></tr>
+            <tr><td style="padding:6px 10px; border:1px solid #dee2e6;">UART/I²C/SPI 控制器</td><td style="padding:6px 10px; border:1px solid #dee2e6;">SoC 自带，直接 &amp;usart1 等</td><td style="padding:6px 10px; border:1px solid #dee2e6;">不需要手动指定</td></tr>
+          </table>
+
+          <p><strong>关键区分：</strong>UART/I²C/SPI/CAN 控制器的 compatible 在 SoC 的 dtsi 文件里已经写好了，你用 <code>&amp;usart1</code> 的时候不需要关心它。你只需要关心挂在总线上的<strong>传感器/显示屏</strong>的 compatible。</p>
+
+          <p><strong>没有现成驱动？</strong>参考最近的同类驱动做模板：<code>ls zephyr/drivers/sensor/</code>。</p>
+
+          <div class="tags"><span class="tag">compatible</span><span class="tag">devicetree</span><span class="tag">bindings</span><span class="tag">驱动</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
