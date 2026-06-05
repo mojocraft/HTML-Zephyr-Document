@@ -344,16 +344,17 @@
   /* ── 右上角控制面板 ── */
   .ctrl-panel {
     position: fixed; top: 16px; right: 24px; z-index: 1000;
-    display: flex; gap: 10px; align-items: center;
+    display: flex; gap: 16px; align-items: center;
   }
   .cursor-select {
-    padding: 8px 14px; border-radius: 20px;
+    padding: 10px 14px; border-radius: 20px;
     background: var(--surface); border: 2px solid var(--border);
     font-size: 0.8rem; color: var(--text); cursor: pointer;
     outline: none; font-family: inherit;
     box-shadow: 0 2px 12px rgba(0,0,0,0.1);
     transition: all 0.25s ease;
     backdrop-filter: blur(8px);
+    height: 44px; box-sizing: border-box;
   }
   .cursor-select:hover {
     border-color: var(--primary);
