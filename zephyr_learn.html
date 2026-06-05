@@ -1086,6 +1086,40 @@ target_sources(app PRIVATE src/main.c)</code></pre>
         </div>
       </div>
 
+
+      <!-- Q10: Kconfig.board 命名规则 -->
+      <div class="qa-card" data-topics="fundamentals board" id="qa-fund-10">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">板级文件中，Kconfig.board 是否需要改成 Kconfig.&lt;board&gt; 这样以板名命名？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>不需要。<code>Kconfig.board</code> 是固定文件名。</strong>板级文件的命名分两类：</p>
+
+          <table class="props">
+            <thead><tr><th>固定文件名（Zephyr 按固定名搜索）</th><th>用板子名（随板名变化）</th></tr></thead>
+            <tbody>
+              <tr><td><code>Kconfig.board</code></td><td><code>&lt;board&gt;.dts</code> &mdash; 如 <code>fc_ddriver.dts</code></td></tr>
+              <tr><td><code>Kconfig.defconfig</code></td><td><code>&lt;board&gt;.yaml</code> &mdash; 如 <code>fc_ddriver.yaml</code></td></tr>
+              <tr><td><code>board.cmake</code></td><td><code>&lt;board&gt;_defconfig</code> &mdash; 如 <code>fc_ddriver_defconfig</code></td></tr>
+              <tr><td><code>board.yml</code></td><td></td></tr>
+            </tbody>
+          </table>
+
+          <p><strong><code>Kconfig.board</code> 文件名固定，但内容里用板名：</strong></p>
+          <pre><code># 文件名叫 Kconfig.board（固定，不改名）
+# 里面的 config 符号才用板子名
+config BOARD_FC_DDRIVER       # ← 这里用板名
+    bool "FC DDriver Board"
+    depends on SOC_STM32F429XI</code></pre>
+
+          <p>原因：Zephyr 的 Kconfig 系统按固定文件名 <code>Kconfig.board</code> 去搜索每个板子目录，不管你板子叫什么名字。Zephyr 源码里几百个板子，每个都是 <code>Kconfig.board</code>。</p>
+
+          <div class="tags"><span class="tag">board</span><span class="tag">Kconfig</span><span class="tag">naming</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
