@@ -352,6 +352,83 @@
     background: #fafbfc; font-size: 0.8rem; color: var(--text-secondary);
   }
 
+  /* ── 代码注解图 ── */
+  .code-annotated {
+    margin: 14px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 20px 20px;
+  }
+  .code-annotated .code-line-full {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.84rem;
+    text-align: center;
+    margin-bottom: 4px;
+    color: #6b7280;
+    line-height: 2;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .code-tok {
+    padding: 2px 8px; border-radius: 4px; font-weight: 600;
+    display: inline-block; margin: 0 1px;
+  }
+  .code-tok-blue  { background: #e0e7ff; color: #3730a3; }
+  .code-tok-pink  { background: #fce7f3; color: #9d174d; }
+  .code-tok-amber { background: #fef3c7; color: #92400e; }
+
+  .code-branches {
+    display: flex; justify-content: space-around;
+    gap: 12px; margin-top: 6px;
+  }
+  .code-branch {
+    flex: 1; text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+    max-width: 220px;
+  }
+  .code-branch .branch-token {
+    padding: 3px 10px; border-radius: 4px; font-weight: 600;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.82rem; display: inline-block; margin-bottom: 2px;
+  }
+  .branch-token.tok-blue  { background: #e0e7ff; color: #3730a3; }
+  .branch-token.tok-pink  { background: #fce7f3; color: #9d174d; }
+  .branch-token.tok-amber { background: #fef3c7; color: #92400e; }
+
+  .code-branch .branch-connector {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .branch-connector .vert-line {
+    width: 2px; height: 20px; border-radius: 1px;
+  }
+  .line-blue  { background: #3730a3; }
+  .line-pink  { background: #9d174d; }
+  .line-amber { background: #92400e; }
+  .branch-connector .arrow-head {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+  }
+  .arrow-blue  { border-top: 6px solid #3730a3; }
+  .arrow-pink  { border-top: 6px solid #9d174d; }
+  .arrow-amber { border-top: 6px solid #92400e; }
+
+  .code-branch .branch-desc {
+    font-size: 0.82rem; font-weight: 600;
+    margin-top: 4px; line-height: 1.4;
+    padding: 6px 10px; border-radius: 6px;
+    width: 100%;
+  }
+  .desc-blue  { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; }
+  .desc-pink  { background: #fdf2f8; border: 1px solid #fbcfe8; color: #9d174d; }
+  .desc-amber { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .branch-desc small {
+    display: block; font-size: 0.72rem; color: var(--text-secondary);
+    margin-top: 2px; font-weight: 400;
+  }
+
   /* ── 规则框 ── */
   .rule-box {
     border: 2px solid var(--primary); border-radius: var(--radius);
@@ -669,28 +746,45 @@ solomon → Solomon Systech</code></pre>
 
           <p style="margin-top:14px;"><strong>完整查找流程 — 以 GPIO 为例：</strong></p>
 
-          <div style="font-family:'SF Mono','Fira Code',monospace; font-size:0.82rem; line-height:2; margin:10px 0;">
-            <div style="display:flex; align-items:center; gap:0;">
-              <span style="color:#6b7280;">gpios = &lt;</span>
-              <span style="background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:4px; font-weight:600;">&amp;gpioa</span>
-              <span style="color:#6b7280;">&nbsp;</span>
-              <span style="background:#fce7f3; color:#9d174d; padding:2px 8px; border-radius:4px; font-weight:600;">5</span>
-              <span style="color:#6b7280;">&nbsp;</span>
-              <span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:4px; font-weight:600;">(GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)</span>
-              <span style="color:#6b7280;">&gt;;</span>
+          <!-- 代码行 + 三分支注解 -->
+          <div class="code-annotated">
+            <div class="code-line-full">
+              gpios = &lt;<span class="code-tok code-tok-blue">&amp;gpioa</span> <span class="code-tok code-tok-pink">5</span> <span class="code-tok code-tok-amber">(GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)</span>&gt;;
             </div>
-            <div style="display:flex; padding-left:188px;">
-              <span style="color:#9d174d;">▲</span>
-            </div>
-            <div style="display:flex; padding-left:160px; gap:60px;">
-              <span style="color:#9d174d; font-size:0.78rem;">pin = 5 (PA5)<br><span style="color:#6b7280;">← stm32f407.dtsi</span></span>
-              <span style="color:#92400e; font-size:0.78rem;">flags 宏<br><span style="color:#6b7280;">← gpio.h</span></span>
-            </div>
-            <div style="display:flex; padding-left:40px; margin-top:2px;">
-              <span style="color:#3730a3;">▲</span>
-            </div>
-            <div style="display:flex; padding-left:18px;">
-              <span style="color:#3730a3; font-size:0.78rem;">&amp;gpioa 存在 ← stm32f407.dtsi</span>
+            <div class="code-branches">
+              <div class="code-branch">
+                <span class="branch-token tok-blue">&amp;gpioa</span>
+                <div class="branch-connector">
+                  <span class="vert-line line-blue"></span>
+                  <span class="arrow-head arrow-blue"></span>
+                </div>
+                <div class="branch-desc desc-blue">
+                  &amp;gpioa 存在
+                  <small>← stm32f407.dtsi</small>
+                </div>
+              </div>
+              <div class="code-branch">
+                <span class="branch-token tok-pink">5</span>
+                <div class="branch-connector">
+                  <span class="vert-line line-pink"></span>
+                  <span class="arrow-head arrow-pink"></span>
+                </div>
+                <div class="branch-desc desc-pink">
+                  pin = 5 (PA5)
+                  <small>← stm32f407.dtsi</small>
+                </div>
+              </div>
+              <div class="code-branch">
+                <span class="branch-token tok-amber">(GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)</span>
+                <div class="branch-connector">
+                  <span class="vert-line line-amber"></span>
+                  <span class="arrow-head arrow-amber"></span>
+                </div>
+                <div class="branch-desc desc-amber">
+                  flags 组合宏
+                  <small>← gpio.h</small>
+                </div>
+              </div>
             </div>
           </div>
 
