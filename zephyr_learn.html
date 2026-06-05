@@ -429,6 +429,11 @@
     margin-top: 2px; font-weight: 400;
   }
 
+  /* ── 文件列表颜色标记 ── */
+  .file-fixed { color: #2563eb; font-weight: 600; }      /* 固定文件名 — 蓝色 */
+  .file-board { color: #059669; font-weight: 600; }      /* 随板名 — 绿色 */
+  .file-ext   { color: #6b7280; }                        /* 扩展名 — 灰色 */
+
   /* ── 规则框 ── */
   .rule-box {
     border: 2px solid var(--primary); border-radius: var(--radius);
@@ -884,13 +889,14 @@ solomon → Solomon Systech</code></pre>
 
           <p><strong>单核板子（STM32）完整目录结构：</strong></p>
           <pre><code>boards/&lt;vendor&gt;/&lt;board&gt;/
-├── board.cmake           # 烧录/调试工具配置（runner：OpenOCD/JLink/pyOCD）
-├── board.yml             # 板子元数据（名称、厂商、SoC）
-├── &lt;board&gt;.dts          # 板级设备树（LED/按键/传感器挂在哪）
-├── &lt;board&gt;.yaml         # 板级绑定（支持的连接器/外设）
-├── &lt;board&gt;_defconfig    # Kconfig 默认配置（选芯片型号 + 启用驱动）
-├── Kconfig.&lt;board&gt;      # 声明 BOARD_XXX 符号（文件名随板名变）
-├── Kconfig.defconfig     # Kconfig 默认值的来源声明（固定文件名）
+├── <span class="file-fixed">board.cmake</span>           # 烧录/调试工具配置（runner：OpenOCD/JLink/pyOCD）
+├── <span class="file-fixed">board.yml</span>             # 板子元数据（名称、厂商、SoC）
+├── <span class="file-fixed">Kconfig.defconfig</span>    # Kconfig 默认值的来源声明（固定文件名）
+│
+├── <span class="file-board">&lt;board&gt;.dts</span>          # 板级设备树（LED/按键/传感器挂在哪）
+├── <span class="file-board">&lt;board&gt;.yaml</span>         # 板级绑定（支持的连接器/外设）
+├── <span class="file-board">&lt;board&gt;_defconfig</span>    # Kconfig 默认配置（选芯片型号 + 启用驱动）
+├── <span class="file-board">Kconfig.&lt;board&gt;</span>      # 声明 BOARD_XXX 符号
 └── (可选) pre_dt_board.cmake  # 设备树预处理</code></pre>
 
           <div class="method-cards">
@@ -972,24 +978,24 @@ CONFIG_I2C=y</code></pre>
           <p>ESP32-S3 有两个 Xtensa 核各自独立运行，Zephyr 把每个核当作<strong>独立的"板子"</strong>：</p>
 
           <pre><code>boards/&lt;vendor&gt;/esp32s3_myboard/
-├── board.cmake              # 公共编译配置
-├── board.yml
-├── Kconfig.&lt;board&gt;
-├── Kconfig.defconfig
+├── <span class="file-fixed">board.cmake</span>              # 公共编译配置
+├── <span class="file-fixed">board.yml</span>
+├── <span class="file-fixed">Kconfig.defconfig</span>
+├── <span class="file-board">Kconfig.&lt;board&gt;</span>
 │
 ├── esp32s3_myboard_procpu/          ← PROCORE (CPU0)
-│   ├── esp32s3_myboard_procpu.dts   # Core 0 的设备树
-│   ├── esp32s3_myboard_procpu.yaml
-│   ├── esp32s3_myboard_procpu_defconfig
-│   └── Kconfig.defconfig
+│   ├── <span class="file-board">esp32s3_myboard_procpu.dts</span>   # Core 0 的设备树
+│   ├── <span class="file-board">esp32s3_myboard_procpu.yaml</span>
+│   ├── <span class="file-board">esp32s3_myboard_procpu_defconfig</span>
+│   └── <span class="file-fixed">Kconfig.defconfig</span>
 │
 ├── esp32s3_myboard_appcpu/          ← APPCORE (CPU1)
-│   ├── esp32s3_myboard_appcpu.dts
-│   ├── esp32s3_myboard_appcpu.yaml
-│   ├── esp32s3_myboard_appcpu_defconfig
-│   └── Kconfig.defconfig
+│   ├── <span class="file-board">esp32s3_myboard_appcpu.dts</span>
+│   ├── <span class="file-board">esp32s3_myboard_appcpu.yaml</span>
+│   ├── <span class="file-board">esp32s3_myboard_appcpu_defconfig</span>
+│   └── <span class="file-fixed">Kconfig.defconfig</span>
 │
-└── esp32s3_myboard_common.dtsi     ← 两个核共享的 DT</code></pre>
+└── <span class="file-board">esp32s3_myboard_common.dtsi</span>     ← 两个核共享的 DT</code></pre>
 
           <p><strong>为什么编译命令变成 <code>-b espressif/esp32s3/myboard_procpu</code>？</strong></p>
           <p>Zephyr 的板子查找路径是 <code>boards/&lt;vendor&gt;/&lt;soc&gt;/&lt;board&gt;</code>。ESP32-S3 每个核各有一个子目录，必须精确指定到核级变体。而 STM32 是单核，目录结构就是 <code>boards/&lt;vendor&gt;/&lt;board&gt;</code>，直接用板名即可。</p>
@@ -1098,34 +1104,34 @@ target_sources(app PRIVATE src/main.c)</code></pre>
           <p><strong>实际命名规则——以官方 stm32f429i_disc1 和你的 fc_ddriver 为例：</strong></p>
 
           <table class="props">
-            <thead><tr><th>固定文件名</th><th>随板名变化</th></tr></thead>
+            <thead><tr><th style="color:#2563eb;">固定文件名</th><th style="color:#059669;">随板名变化</th></tr></thead>
             <tbody>
-              <tr><td><code>board.cmake</code></td><td><code>&lt;board&gt;.dts</code> &mdash; 如 <code>fc_ddriver.dts</code></td></tr>
-              <tr><td><code>board.yml</code></td><td><code>&lt;board&gt;.yaml</code> &mdash; 如 <code>stm32f429i_disc1.yaml</code></td></tr>
-              <tr><td><code>Kconfig.defconfig</code></td><td><code>&lt;board&gt;_defconfig</code> &mdash; 如 <code>fc_ddriver_defconfig</code></td></tr>
-              <tr><td></td><td><code>Kconfig.&lt;board&gt;</code> &mdash; 如 <code>Kconfig.fc_ddriver</code></td></tr>
+              <tr><td style="color:#2563eb;font-weight:600;">board.cmake</td><td style="color:#059669;font-weight:600;">&lt;board&gt;.dts &mdash; 如 fc_ddriver.dts</td></tr>
+              <tr><td style="color:#2563eb;font-weight:600;">board.yml</td><td style="color:#059669;font-weight:600;">&lt;board&gt;.yaml &mdash; 如 stm32f429i_disc1.yaml</td></tr>
+              <tr><td style="color:#2563eb;font-weight:600;">Kconfig.defconfig</td><td style="color:#059669;font-weight:600;">&lt;board&gt;_defconfig &mdash; 如 fc_ddriver_defconfig</td></tr>
+              <tr><td></td><td style="color:#059669;font-weight:600;">Kconfig.&lt;board&gt; &mdash; 如 Kconfig.fc_ddriver</td></tr>
             </tbody>
           </table>
 
           <p><strong>实际目录示例：</strong></p>
-          <pre><code># 你的 fc_ddriver 工程
-ls fc_ddriver/boards/arm/fc_ddriver/
-# → board.cmake          ← 固定名
-# → board.yml            ← 固定名
-# → Kconfig.defconfig    ← 固定名
-# → Kconfig.fc_ddriver   ← 随板名
-# → fc_driver.dts        ← 随板名
-# → fc_driver_defconfig  ← 随板名
+          <pre><code><span class="file-ext"># 你的 fc_ddriver 工程</span>
+<span class="file-ext">ls fc_ddriver/boards/arm/fc_ddriver/</span>
+<span class="file-ext"># →</span> <span class="file-fixed">board.cmake</span>        <span class="file-ext">← 固定名</span>
+<span class="file-ext"># →</span> <span class="file-fixed">board.yml</span>           <span class="file-ext">← 固定名</span>
+<span class="file-ext"># →</span> <span class="file-fixed">Kconfig.defconfig</span>  <span class="file-ext">← 固定名</span>
+<span class="file-ext"># →</span> <span class="file-board">Kconfig.fc_ddriver</span> <span class="file-ext">← 随板名</span>
+<span class="file-ext"># →</span> <span class="file-board">fc_ddriver.dts</span>      <span class="file-ext">← 随板名</span>
+<span class="file-ext"># →</span> <span class="file-board">fc_ddriver_defconfig</span><span class="file-ext">← 随板名</span>
 
-# 官方 STM32F429I-DISC1
-ls zephyr/boards/st/stm32f429i_disc1/
-# → board.cmake                   ← 固定名
-# → board.yml                     ← 固定名
-# → Kconfig.defconfig            ← 固定名
-# → Kconfig.stm32f429i_disc1     ← 随板名
-# → stm32f429i_disc1.dts         ← 随板名
-# → stm32f429i_disc1_defconfig   ← 随板名
-# → stm32f429i_disc1.yaml        ← 随板名</code></pre>
+<span class="file-ext"># 官方 STM32F429I-DISC1</span>
+<span class="file-ext">ls zephyr/boards/st/stm32f429i_disc1/</span>
+<span class="file-ext"># →</span> <span class="file-fixed">board.cmake</span>                     <span class="file-ext">← 固定名</span>
+<span class="file-ext"># →</span> <span class="file-fixed">board.yml</span>                       <span class="file-ext">← 固定名</span>
+<span class="file-ext"># →</span> <span class="file-fixed">Kconfig.defconfig</span>              <span class="file-ext">← 固定名</span>
+<span class="file-ext"># →</span> <span class="file-board">Kconfig.stm32f429i_disc1</span>       <span class="file-ext">← 随板名</span>
+<span class="file-ext"># →</span> <span class="file-board">stm32f429i_disc1.dts</span>           <span class="file-ext">← 随板名</span>
+<span class="file-ext"># →</span> <span class="file-board">stm32f429i_disc1_defconfig</span>     <span class="file-ext">← 随板名</span>
+<span class="file-ext"># →</span> <span class="file-board">stm32f429i_disc1.yaml</span>          <span class="file-ext">← 随板名</span></code></pre>
 
           <p><strong>（之前说 Kconfig.board 是固定名→错误，感谢纠正。）</strong></p>
 
