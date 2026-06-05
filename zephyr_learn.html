@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zephyr RTOS 学习笔记</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --border: #dee2e6;
+    --text: #212529;
+    --text-secondary: #6c757d;
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --accent-gpio: #059669;
+    --accent-can: #d97706;
+    --accent-pwm: #7c3aed;
+    --accent-adc: #dc2626;
+    --accent-i2c: #0891b2;
+    --accent-spi: #4f46e5;
+    --accent-uart: #ea580c;
+    --accent-timer: #be185d;
+    --accent-dma: #1d4ed8;
+    --accent-thread: #b45309;
+    --accent-default: #2563eb;
+    --code-bg: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── 侧边栏 ── */
+  nav {
+    width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  nav h1 {
+    font-size: 1.15rem;
+    margin-bottom: 6px;
+    color: var(--primary);
+  }
+  nav .subtitle {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+  nav input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.88rem;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  nav input:focus { border-color: var(--primary); }
+  nav .toc { list-style: none; }
+  nav .toc li { margin-bottom: 2px; }
+  nav .toc a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.88rem;
+    color: var(--text);
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  nav .toc a:hover { background: var(--primary-light); }
+  nav .toc a .badge {
+    float: right;
+    font-size: 0.72rem;
+    background: var(--border);
+    color: var(--text-secondary);
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  /* ── 主内容区 ── */
+  main {
+    flex: 1;
+    padding: 28px 36px;
+    max-width: 960px;
+  }
+  main h2 {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  main h2 .icon {
+    width: 24px; height: 24px;
+    border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; color: #fff;
+  }
+
+  /* 主题色标 */
+  .topic-gpio  .icon, .icon-gpio  { background: var(--accent-gpio); }
+  .topic-can   .icon, .icon-can   { background: var(--accent-can); }
+  .topic-pwm   .icon, .icon-pwm   { background: var(--accent-pwm); }
+  .topic-adc   .icon, .icon-adc   { background: var(--accent-adc); }
+  .topic-i2c   .icon, .icon-i2c   { background: var(--accent-i2c); }
+  .topic-spi   .icon, .icon-spi   { background: var(--accent-spi); }
+  .topic-uart  .icon, .icon-uart  { background: var(--accent-uart); }
+  .topic-timer .icon, .icon-timer { background: var(--accent-timer); }
+  .topic-dma   .icon, .icon-dma   { background: var(--accent-dma); }
+  .topic-thread .icon, .icon-thread { background: var(--accent-thread); }
+
+  .topic-section { margin-bottom: 36px; }
+  .topic-section.collapsed .qa-list { display: none; }
+
+  /* ── 问答卡片 ── */
+  .qa-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .qa-card .q {
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .qa-card .q:hover { background: #fafbfc; }
+  .qa-card .q .marker {
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .qa-card .q .text {
+    flex: 1;
+    font-weight: 500;
+  }
+  .qa-card .q .arrow {
+    color: var(--text-secondary);
+    transition: transform 0.25s;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .qa-card.open .q .arrow { transform: rotate(90deg); }
+  .qa-card .a {
+    display: none;
+    padding: 0 18px 16px 42px;
+    color: #374151;
+    font-size: 0.93rem;
+  }
+  .qa-card.open .a { display: block; }
+  .qa-card .a p { margin-bottom: 8px; }
+  .qa-card .a ul, .qa-card .a ol { margin: 6px 0 10px 18px; }
+  .qa-card .a li { margin-bottom: 4px; }
+
+  /* 代码块 */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    margin: 8px 0;
+  }
+  code {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 0.84rem;
+  }
+  :not(pre) > code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #c7254e;
+  }
+
+  /* 标签 */
+  .tags { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  /* 按钮 */
+  .btn-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+  .btn:hover { background: var(--primary-light); border-color: var(--primary); }
+  .btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .no-result {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    display: none;
+  }
+  .no-result.show { display: block; }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    nav {
+      width: 100%; height: auto; position: static;
+      border-right: none; border-bottom: 1px solid var(--border);
+    }
+    main { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ 侧边栏 ════════════════ -->
+<nav>
+  <h1>Zephyr RTOS 学习笔记</h1>
+  <p class="subtitle">问答归档 · 按主题索引</p>
+  <input type="text" id="search" placeholder="搜索问题…">
+  <ul class="toc" id="toc"></ul>
+</nav>
+
+<!-- ════════════════ 主内容 ════════════════ -->
+<main>
+
+  <div class="btn-row">
+    <button class="btn active" onclick="expandAll()">展开全部</button>
+    <button class="btn" onclick="collapseAll()">折叠全部</button>
+    <button class="btn" onclick="filterBy('all')" data-filter="all">全部</button>
+    <button class="btn" onclick="filterBy('gpio')" data-filter="gpio">GPIO</button>
+    <button class="btn" onclick="filterBy('can')" data-filter="can">CAN</button>
+    <button class="btn" onclick="filterBy('pwm')" data-filter="pwm">PWM</button>
+    <button class="btn" onclick="filterBy('adc')" data-filter="adc">ADC</button>
+    <button class="btn" onclick="filterBy('i2c')" data-filter="i2c">I²C</button>
+    <button class="btn" onclick="filterBy('spi')" data-filter="spi">SPI</button>
+    <button class="btn" onclick="filterBy('uart')" data-filter="uart">UART</button>
+    <button class="btn" onclick="filterBy('timer')" data-filter="timer">Timer</button>
+    <button class="btn" onclick="filterBy('dma')" data-filter="dma">DMA</button>
+    <button class="btn" onclick="filterBy('thread')" data-filter="thread">线程</button>
+  </div>
+
+  <div class="no-result" id="noResult">没有匹配的问答，试试其他关键词。</div>
+
+  <!--
+  ════════════════════════════════════════════
+  模板：复制整个 topic-section 块来添加新主题。
+  复制整个 qa-card 块来添加新问答。
+  ════════════════════════════════════════════
+  -->
+
+  <!-- ────────── GPIO ────────── -->
+  <section class="topic-section topic-gpio" data-topic="gpio" id="sec-gpio">
+    <h2><span class="icon icon-gpio">G</span> GPIO</h2>
+    <div class="qa-list">
+
+      <!-- 示例问答卡片：复制此块添加新内容 -->
+      <!--
+      <div class="qa-card" data-topics="gpio" id="qa-gpio-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">这里写问题标题</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p>这里写回答内容。支持 HTML 格式。</p>
+          <pre><code>// 代码示例
+gpio_pin_configure_dt(&amp;led, GPIO_OUTPUT_ACTIVE);</code></pre>
+          <div class="tags"><span class="tag">API</span><span class="tag">示例</span></div>
+        </div>
+      </div>
+      -->
+
+    </div>
+  </section>
+
+  <!-- ────────── CAN ────────── -->
+  <section class="topic-section topic-can" data-topic="can" id="sec-can">
+    <h2><span class="icon icon-can">C</span> CAN 总线</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── PWM ────────── -->
+  <section class="topic-section topic-pwm" data-topic="pwm" id="sec-pwm">
+    <h2><span class="icon icon-pwm">P</span> PWM 输出</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── ADC ────────── -->
+  <section class="topic-section topic-adc" data-topic="adc" id="sec-adc">
+    <h2><span class="icon icon-adc">A</span> ADC 采集</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── I²C ────────── -->
+  <section class="topic-section topic-i2c" data-topic="i2c" id="sec-i2c">
+    <h2><span class="icon icon-i2c">I</span> I²C 总线</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── SPI ────────── -->
+  <section class="topic-section topic-spi" data-topic="spi" id="sec-spi">
+    <h2><span class="icon icon-spi">S</span> SPI 总线</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── UART ────────── -->
+  <section class="topic-section topic-uart" data-topic="uart" id="sec-uart">
+    <h2><span class="icon icon-uart">U</span> UART 串口</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── Timer ────────── -->
+  <section class="topic-section topic-timer" data-topic="timer" id="sec-timer">
+    <h2><span class="icon icon-timer">T</span> 定时器</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── DMA ────────── -->
+  <section class="topic-section topic-dma" data-topic="dma" id="sec-dma">
+    <h2><span class="icon icon-dma">D</span> DMA</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── 线程与调度 ────────── -->
+  <section class="topic-section topic-thread" data-topic="thread" id="sec-thread">
+    <h2><span class="icon icon-thread">θ</span> 线程与调度</h2>
+    <div class="qa-list"></div>
+  </section>
+
+  <!-- ────────── 其他 ────────── -->
+  <section class="topic-section" data-topic="other" id="sec-other">
+    <h2>📦 其他（构建 / Devicetree / 驱动模型 …）</h2>
+    <div class="qa-list"></div>
+  </section>
+
+</main>
+
+<script>
+// ── 构建侧边栏目录 ──
+(function buildTOC() {
+  const toc = document.getElementById('toc');
+  const sections = document.querySelectorAll('.topic-section');
+  sections.forEach(sec => {
+    const h2 = sec.querySelector('h2');
+    const count = sec.querySelectorAll('.qa-card').length;
+    const a = document.createElement('a');
+    a.href = '#' + sec.id;
+    a.innerHTML = `${h2.textContent.trim()} <span class="badge">${count}</span>`;
+    const li = document.createElement('li');
+    li.appendChild(a);
+    toc.appendChild(li);
+  });
+})();
+
+// ── 更新计数 ──
+function updateCounts() {
+  document.querySelectorAll('.topic-section').forEach(sec => {
+    const count = sec.querySelectorAll('.qa-card:not([style*="display: none"])').length;
+    const id = sec.id;
+    const a = document.querySelector(`nav a[href="#${id}"]`);
+    if (a) {
+      const badge = a.querySelector('.badge');
+      if (badge) badge.textContent = count;
+    }
+  });
+}
+
+// ── 搜索 ──
+document.getElementById('search').addEventListener('input', function(e) {
+  const q = e.target.value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.qa-card');
+  let foundAny = false;
+
+  if (!q) {
+    // 空搜索：显示所有，按照当前 filter 状态
+    cards.forEach(c => c.style.display = '');
+    document.querySelectorAll('.topic-section').forEach(s => s.style.display = '');
+    document.getElementById('noResult').classList.remove('show');
+    updateCounts();
+    return;
+  }
+
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const match = text.includes(q);
+    card.style.display = match ? '' : 'none';
+    if (match) foundAny = true;
+  });
+
+  // 显示/隐藏空的 section
+  document.querySelectorAll('.topic-section').forEach(sec => {
+    const visible = sec.querySelectorAll('.qa-card:not([style*="display: none"])').length;
+    sec.style.display = visible > 0 ? '' : 'none';
+  });
+
+  document.getElementById('noResult').classList.toggle('show', !foundAny);
+  updateCounts();
+});
+
+// ── 按主题过滤 ──
+function filterBy(topic) {
+  // 更新按钮 active 状态
+  document.querySelectorAll('.btn[data-filter]').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.btn[data-filter="${topic}"]`);
+  if (btn) btn.classList.add('active');
+
+  // 清除搜索框
+  document.getElementById('search').value = '';
+
+  if (topic === 'all') {
+    document.querySelectorAll('.topic-section').forEach(s => s.style.display = '');
+    document.querySelectorAll('.qa-card').forEach(c => c.style.display = '');
+    document.getElementById('noResult').classList.remove('show');
+    updateCounts();
+    return;
+  }
+
+  let foundAny = false;
+  document.querySelectorAll('.topic-section').forEach(sec => {
+    if (sec.dataset.topic === topic) {
+      sec.style.display = '';
+      sec.querySelectorAll('.qa-card').forEach(c => {
+        c.style.display = '';
+        foundAny = true;
+      });
+    } else {
+      sec.style.display = 'none';
+      sec.querySelectorAll('.qa-card').forEach(c => c.style.display = 'none');
+    }
+  });
+
+  document.getElementById('noResult').classList.toggle('show', !foundAny);
+  updateCounts();
+}
+
+function expandAll() {
+  document.querySelectorAll('.qa-card').forEach(c => c.classList.add('open'));
+}
+function collapseAll() {
+  document.querySelectorAll('.qa-card').forEach(c => c.classList.remove('open'));
+}
+</script>
+</body>
+</html>
