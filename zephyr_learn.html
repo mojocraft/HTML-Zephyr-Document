@@ -326,6 +326,21 @@
   }
   .stats-bar .stat strong { color: var(--primary); font-size: 1.05rem; }
 
+  /* ── 赛博朋克光标 ── */
+  #cursorTrail {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 9999;
+  }
+  .cyber-cursor {
+    position: fixed; pointer-events: none; z-index: 10001;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle, #0ff 0%, transparent 70%);
+    box-shadow: 0 0 20px #0ff, 0 0 40px #0ff, 0 0 80px #0ff;
+    transform: translate(-50%, -50%);
+    transition: width 0.15s, height 0.15s;
+    mix-blend-mode: screen;
+  }
+
   /* ── 日夜间切换按钮 ── */
   .theme-toggle {
     position: fixed; top: 16px; right: 24px; z-index: 1000;
@@ -646,6 +661,9 @@
 </style>
 </head>
 <body>
+
+<canvas id="cursorTrail"></canvas>
+<div class="cyber-cursor" id="cyberCursor"></div>
 
 <button class="theme-toggle" id="themeToggle" title="切换日间/夜间模式" aria-label="切换日间/夜间模式">
   <span class="icon-sun">&#9728;&#65039;</span>
@@ -3092,6 +3110,61 @@ document.getElementById('toc').addEventListener('click', (e) => {
     if (sec) animateSection(sec, true);
   }
 });
+
+// ── 赛博朋克光标拖尾 ──
+(function cursorFX() {
+  const canvas = document.getElementById('cursorTrail');
+  const ctx = canvas.getContext('2d');
+  const cursor = document.getElementById('cyberCursor');
+  const particles = [];
+  const MAX = 40;
+  let mx = -100, my = -100;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+    particles.push({ x: mx, y: my, life: 1, size: 4 + Math.random() * 5,
+      hue: 180 + Math.random() * 60, vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5 });
+    if (particles.length > MAX) particles.shift();
+  });
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= 0.015;
+      p.x += p.vx; p.y += p.vy;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${p.life * 0.6})`;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = `hsla(${p.hue}, 100%, 60%, ${p.life * 0.5})`;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // 鼠标离开页面时隐藏
+  document.addEventListener('mouseleave', () => {
+    cursor.style.opacity = '0';
+    particles.length = 0;
+  });
+  document.addEventListener('mouseenter', () => {
+    cursor.style.opacity = '1';
+  });
+})();
 </script>
 </body>
 </html>
