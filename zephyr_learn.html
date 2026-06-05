@@ -86,10 +86,10 @@
     transition: all 0.25s ease;
   }
   main h2:hover {
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-    border-color: #94a3b8;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06);
-    transform: translateY(-2px) scale(1.005);
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    border-color: var(--primary);
+    box-shadow: 0 12px 32px rgba(37,99,235,0.18), 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-5px) scale(1.02);
   }
   main h2 .icon {
     width: 32px; height: 32px; border-radius: 7px;
@@ -143,11 +143,11 @@
     background: var(--border); transition: all 0.3s ease;
   }
   .qa-card:hover {
-    box-shadow: 0 8px 28px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
-    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.16), 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-6px) scale(1.015);
     border-color: #94a3b8;
   }
-  .qa-card:hover::before { width: 6px; }
+  .qa-card:hover::before { width: 8px; }
 
   /* 用父级 topic 给同 section 内的卡片着色 */
   .topic-gpio        .qa-card::before { background: var(--accent-gpio); }
