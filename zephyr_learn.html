@@ -871,6 +871,153 @@ solomon → Solomon Systech</code></pre>
         </div>
       </div>
 
+
+      <!-- Q8: 自定义板子需要哪些文件 -->
+      <div class="qa-card" data-topics="fundamentals board devicetree" id="qa-fund-8">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">自定义电路板时，需要在 boards/ 下创建哪些文件？各自起什么作用？STM32 和 ESP32-S3 双核有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>核心思路：把芯片厂商已写好的 SoC 级文件重组，加上你板子特有的外设和引脚分配。</strong></p>
+
+          <p><strong>单核板子（STM32）完整目录结构：</strong></p>
+          <pre><code>boards/&lt;vendor&gt;/&lt;board&gt;/
+├── board.cmake           # 告诉 CMake 用什么芯片、需要哪些模块
+├── board.yml             # 板子元数据（名称、厂商、SoC）
+├── &lt;board&gt;.dts          # 板级设备树（LED/按键/传感器挂在哪）
+├── &lt;board&gt;.yaml         # 板级绑定（支持的连接器/外设）
+├── &lt;board&gt;_defconfig    # Kconfig 默认配置（内核、驱动开关）
+├── Kconfig.board         # 声明 BOARD_MYBOARD 符号
+├── Kconfig.defconfig     # Kconfig 默认值的来源声明
+└── (可选) pre_dt_board.cmake  # 设备树预处理</code></pre>
+
+          <div class="method-cards">
+            <div class="method-card">
+              <div class="method-card-header">&#128196; Kconfig.board</div>
+              <div class="method-card-body">
+                <p><strong>声明板子存在</strong>，让 <code>-b myboard</code> 能识别：</p>
+                <pre><code>config BOARD_MYBOARD
+    bool "My Board"
+    depends on SOC_STM32F407XE</code></pre>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128196; Kconfig.defconfig</div>
+              <div class="method-card-body">
+                <p><strong>默认 Kconfig 选项</strong>，格式 <code>if BOARD → default XXX</code>：</p>
+                <pre><code>if BOARD_MYBOARD
+config I2C
+    default y
+endif</code></pre>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128196; board.cmake</div>
+              <div class="method-card-body">
+                <p><strong>编译/烧录参数</strong>：Flash 大小、调试器、OpenOCD 配置等。</p>
+                <pre><code>board_set_flash_target_ifdblock_size(0x40000)
+include(.../openocd.board.cmake)</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-paths">
+            <div class="path-card" style="border-top:3px solid #3b82f6;">
+              <div class="path-card-header">myboard_defconfig</div>
+              <div class="path-card-body">
+                <p style="font-size:0.82rem;"><strong>.conf 格式</strong>（不是 Kconfig 语法）：</p>
+                <pre><code>CONFIG_SOC_STM32F407XE=y
+CONFIG_CONSOLE=y
+CONFIG_SERIAL=y
+CONFIG_I2C=y</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">启用板子需要的 SoC 型号和驱动</p>
+              </div>
+            </div>
+            <div class="path-card" style="border-top:3px solid #10b981;">
+              <div class="path-card-header">myboard.dts &mdash; 板级设备树</div>
+              <div class="path-card-body">
+                <p style="font-size:0.82rem;"><strong>#include SoC dtsi + 写外设节点</strong>：</p>
+                <pre><code>#include &lt;st/f4/stm32f407Xe.dtsi&gt;
+
+/ {
+    chosen { zephyr,console = &amp;usart1; };
+    leds { led0 { gpios = &lt;&amp;gpioa 5 0&gt;; }; };
+};
+&amp;i2c1 { status = "okay"; };</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">决定哪些外设启用、LED 接在哪个引脚</p>
+              </div>
+            </div>
+          </div>
+
+          <p style="margin-top:18px;"><strong>双核板子（ESP32-S3）— 为什么结构不同：</strong></p>
+          <p>ESP32-S3 有两个 Xtensa 核各自独立运行，Zephyr 把每个核当作<strong>独立的"板子"</strong>：</p>
+
+          <pre><code>boards/&lt;vendor&gt;/esp32s3_myboard/
+├── board.cmake              # 公共编译配置
+├── board.yml
+├── Kconfig.board
+├── Kconfig.defconfig
+│
+├── esp32s3_myboard_procpu/          ← PROCORE (CPU0)
+│   ├── esp32s3_myboard_procpu.dts   # Core 0 的设备树
+│   ├── esp32s3_myboard_procpu.yaml
+│   ├── esp32s3_myboard_procpu_defconfig
+│   └── Kconfig.defconfig
+│
+├── esp32s3_myboard_appcpu/          ← APPCORE (CPU1)
+│   ├── esp32s3_myboard_appcpu.dts
+│   ├── esp32s3_myboard_appcpu.yaml
+│   ├── esp32s3_myboard_appcpu_defconfig
+│   └── Kconfig.defconfig
+│
+└── esp32s3_myboard_common.dtsi     ← 两个核共享的 DT</code></pre>
+
+          <p><strong>为什么编译命令变成 <code>-b espressif/esp32s3/myboard_procpu</code>？</strong></p>
+          <p>Zephyr 的板子查找路径是 <code>boards/&lt;vendor&gt;/&lt;soc&gt;/&lt;board&gt;</code>。ESP32-S3 每个核各有一个子目录，必须精确指定到核级变体。而 STM32 是单核，目录结构就是 <code>boards/&lt;vendor&gt;/&lt;board&gt;</code>，直接用板名即可。</p>
+
+          <div class="compare-grid">
+            <div class="cg-head" style="grid-column:1">对比</div>
+            <div class="cg-head cg-stm32">STM32（单核）</div>
+            <div class="cg-head cg-esp32">ESP32-S3（双核）</div>
+
+            <div class="cg-label">目录结构</div>
+            <div class="cg-stm32"><code>boards/vendor/board/</code></div>
+            <div class="cg-esp32"><code>boards/vendor/soc/board_procpu/</code> + <code>_appcpu/</code></div>
+
+            <div class="cg-label">编译命令</div>
+            <div class="cg-stm32"><code>west build -b myboard .</code></div>
+            <div class="cg-esp32"><code>west build -b espressif/esp32s3/myboard_procpu .</code></div>
+
+            <div class="cg-label">两个核差异</div>
+            <div class="cg-stm32">N/A</div>
+            <div class="cg-esp32">PROCPU 跑 Zephyr 内核 + 外设；APPCPU 被 PROCORE 启动，共享部分外设需 IPC。chosen 节点和中断分配不同</div>
+          </div>
+
+          <p><strong>快速创建方法：对照现有板子抄</strong></p>
+          <pre><code># 找到最接近你芯片的板子
+ls zephyr/boards/st/nucleo_f407zg/
+
+# 全目录复制
+cp -r zephyr/boards/st/nucleo_f407zg/ boards/&lt;your-vendor&gt;/myboard/
+
+# 然后逐一改：
+#   Kconfig.board → BOARD_MYBOARD, depends on SOC_XXX
+#   myboard_defconfig → 改成你的 SoC 型号和需要的驱动
+#   myboard.dts → 改 #include 的 dtsi，改 chosen，加你的外设
+#   myboard.yaml → 改 identifier
+#   board.yml → 改 name/vendor/socs</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>本质规律：</strong>SoC 级文件（dtsi、Kconfig）是芯片厂商写好的——你 #include 进来。板级文件（dts、defconfig）才是你的——你决定哪些外设启用、LED 接在哪个引脚。创建新板子就是"引用 SoC + 定制板级"。</span>
+          </div>
+
+          <div class="tags"><span class="tag">board</span><span class="tag">devicetree</span><span class="tag">Kconfig</span><span class="tag">STM32</span><span class="tag">ESP32</span><span class="tag">dual-core</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
