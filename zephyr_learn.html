@@ -3153,7 +3153,7 @@ document.getElementById('toc').addEventListener('click', (e) => {
   window.addEventListener('resize', resize); resize();
 
   document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-  document.addEventListener('mouseleave', () => { cursor.style.display = 'none'; particles.length = 0; });
+  document.addEventListener('mouseleave', () => { cursor.style.display = 'none'; particles.length = 0; trailPts.length = 0; });
   document.addEventListener('mouseenter', () => { cursor.style.display = ''; });
 
   function spawnParticle(hue, vx, vy, sz) {
@@ -3200,11 +3200,19 @@ document.getElementById('toc').addEventListener('click', (e) => {
   }
 
   let boltTimer = 0;
+  const trailPts = []; const TRAIL_MAX = 60;
+
   function drawLightning() {
     cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
     cursor.style.width = '14px'; cursor.style.height = '14px';
     cursor.style.background = 'radial-gradient(circle, #fff 0%, #a78bfa 40%, transparent 70%)';
     cursor.style.boxShadow = '0 0 14px #c4b5fd, 0 0 30px #8b5cf6, 0 0 60px #7c3aed';
+
+    // ── 拖尾：记录鼠标路径 ──
+    if (mx > 0) {
+      trailPts.push({ x: mx, y: my, life: 1 });
+      if (trailPts.length > TRAIL_MAX) trailPts.shift();
+    }
 
     boltTimer++;
     if (boltTimer > 8 && mx > 0) {
@@ -3217,6 +3225,27 @@ document.getElementById('toc').addEventListener('click', (e) => {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // ── 渲染拖尾光点 ──
+    for (let i = trailPts.length - 1; i >= 0; i--) {
+      const t = trailPts[i];
+      t.life -= 0.025;
+      if (t.life <= 0) { trailPts.splice(i, 1); continue; }
+      const alpha = t.life * 0.5;
+      const r = t.life * 6;
+      ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(270, 100%, 70%, ${alpha})`;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = `hsla(270, 100%, 60%, ${alpha * 0.6})`;
+      ctx.fill();
+      // 外层光晕
+      ctx.beginPath(); ctx.arc(t.x, t.y, r * 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(280, 100%, 80%, ${alpha * 0.2})`;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    // ── 渲染闪电粒子 ──
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.life -= 0.03;
@@ -3229,7 +3258,6 @@ document.getElementById('toc').addEventListener('click', (e) => {
         ctx.shadowBlur = 8;
         ctx.shadowColor = `hsla(${p.hue}, 100%, 70%, ${p.life * 0.8})`;
         ctx.stroke();
-        // 闪电分支
         if (Math.random() < 0.3) {
           const mx2 = (p.bx + p.nx) / 2, my2 = (p.by + p.ny) / 2;
           const ex = mx2 + (Math.random() - 0.5) * 12;
@@ -3270,7 +3298,7 @@ document.getElementById('toc').addEventListener('click', (e) => {
   select.addEventListener('change', () => {
     mode = select.value;
     localStorage.setItem('cursor-mode', mode);
-    particles.length = 0;
+    particles.length = 0; trailPts.length = 0;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (mode === 'none') cursor.style.display = 'none';
     else cursor.style.display = '';
