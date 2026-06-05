@@ -251,7 +251,7 @@
 
   /* ── 三列方法卡片 ── */
   .method-cards {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;
     margin: 14px 0;
   }
   @media (max-width: 720px) { .method-cards { grid-template-columns: 1fr; } }
@@ -924,6 +924,18 @@ board_runner_args(jlink
 include(.../openocd.board.cmake)
 include(.../jlink.board.cmake)</code></pre>
                 <p style="font-size:0.78rem;color:var(--text-secondary);">芯片型号实际由 <code>_defconfig</code> 中 <code>CONFIG_SOC_XXX=y</code> 决定</p>
+              </div>
+            </div>
+            <div class="method-card">
+              <div class="method-card-header">&#128196; board.yml</div>
+              <div class="method-card-body">
+                <p><strong>板子元数据</strong>，给 west 和工具链用：</p>
+                <pre><code>board:
+  name: myboard
+  vendor: my-company
+  socs:
+    - name: stm32f407xe</code></pre>
+                <p style="font-size:0.78rem;color:var(--text-secondary);">声明板子名称、厂商、SoC，供 west 和 IDE 识别</p>
               </div>
             </div>
           </div>
