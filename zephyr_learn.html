@@ -121,7 +121,8 @@
   .topic-thread .icon, .icon-thread { background: var(--accent-thread); }
   .topic-fundamentals .icon, .icon-fundamentals { background: var(--primary); }
 
-  .topic-section { margin-bottom: 36px; }
+  .topic-section { margin-bottom: 36px; transition: margin-bottom 0.35s ease; }
+  .topic-section.collapsed { margin-bottom: 8px; }
   .topic-section .qa-list {
     overflow: hidden;
     transition: max-height 0.45s ease, opacity 0.35s ease;
