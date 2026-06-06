@@ -4231,7 +4231,7 @@ k_work_submit_to_queue(&amp;my_wq, &amp;my_work);</code></pre>
         <div class="a">
           <p><strong>逐个参数拆解：</strong></p>
           <pre><code>find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-             │       │         │        └─ 环境变量，展开为实际路径
+             │       │         │        └─ 环境变量 → 实际路径
              │       │         └─ 优先搜索这个路径
              │       └─ 找不到就报错，停止构建
              └─ 要找的包名</code></pre>
@@ -4262,8 +4262,9 @@ k_work_submit_to_queue(&amp;my_wq, &amp;my_work);</code></pre>
           <p><strong>因为 <code>find_package</code> 找的是 <code>ZephyrConfig.cmake</code> 文件，不是目录。</strong></p>
           <pre><code>路径是小写 zephyr →    ~/zephyrproject/zephyr/...
                                           ↑ 目录名，跟 CMake 无关
+
 要匹配的文件是大 Z  →   .../share/zephyr-package/cmake/ZephyrConfig.cmake
-                          ↑ CMake 用这个名字去匹配                          </code></pre>
+                                                          ↑ 大 Z，匹配 find_package(Zephyr)</code></pre>
 
           <p>CMake 的规则：<code>find_package(&lt;Name&gt;)</code> 去找 <code>&lt;Name&gt;Config.cmake</code>，<code>&lt;Name&gt;</code> 的大小写必须和文件名<strong>完全一致</strong>。Zephyr 项目选择用大写 Z 命名这个文件，所以 <code>find_package</code> 里也必须写大写 Z。</p>
 
