@@ -1752,6 +1752,51 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
         </div>
       </div>
 
+      <!-- Kconfig命名：不要凭直觉猜 -->
+      <div class="qa-card" data-topics="fundamentals pwm kconfig" id="qa-fund-kconfig-naming">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">为什么 ESP32 的 PWM 配置名是 CONFIG_PWM_ESP32_LEDC 而不是直觉上的 CONFIG_ESP32_PWM？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>因为 Zephyr 的配置名直接跟芯片硬件模块名，不同平台没有统一命名规范。</strong></p>
+
+          <table class="props">
+            <thead><tr><th>平台</th><th>PWM 外设配置名</th><th>为什么叫这个</th></tr></thead>
+            <tbody>
+              <tr><td>STM32</td><td><code>CONFIG_PWM_STM32</code></td><td>TIM 定时器做 PWM</td></tr>
+              <tr><td>ESP32 LEDC</td><td><code>CONFIG_PWM_ESP32_LEDC</code></td><td>LED Control PWM</td></tr>
+              <tr><td>ESP32 MCPWM</td><td><code>CONFIG_PWM_ESP32_MCPWM</code></td><td>Motor Control PWM</td></tr>
+              <tr><td>nRF52</td><td><code>CONFIG_PWM_NRF5_SW</code></td><td>nRF5 软件 PWM</td></tr>
+              <tr><td>NXP MCUX</td><td><code>CONFIG_PWM_MCUX</code></td><td>MCUXpresso SDK PWM</td></tr>
+            </tbody>
+          </table>
+
+          <p>ESP32 有两个不同用途的 PWM 硬件模块，所以必须用不同名字区分。<strong>Zephyr 不会为了命名统一把 LEDC 改成 ESP32_PWM</strong> — 它忠实反映芯片厂商标注的硬件模块名。</p>
+
+          <p><strong>发现正确名字的方法就一条命令：</strong></p>
+          <pre><code>ls zephyr/drivers/pwm/Kconfig.*
+# → Kconfig.stm32
+# → Kconfig.esp32_ledc        ← CONFIG_PWM_ESP32_LEDC
+# → Kconfig.esp32_mcpwm       ← CONFIG_PWM_ESP32_MCPWM
+# → Kconfig.nrf5_sw</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">Kconfig 文件名 = CONFIG_ 后缀</div>
+            <ul>
+              <li><code>Kconfig.stm32</code> → <code>CONFIG_PWM_STM32=y</code></li>
+              <li><code>Kconfig.esp32_ledc</code> → <code>CONFIG_PWM_ESP32_LEDC=y</code></li>
+              <li><code>Kconfig.nrf5_sw</code> → <code>CONFIG_PWM_NRF5_SW=y</code></li>
+            </ul>
+          </div>
+
+          <p>这方法对任何外设都管用：<code>ls zephyr/drivers/&lt;外设名&gt;/Kconfig.*</code>，看到什么就写什么。</p>
+
+          <div class="tags"><span class="tag">Kconfig</span><span class="tag">命名</span><span class="tag">PWM</span><span class="tag">ESP32</span><span class="tag">LEDC</span></div>
+        </div>
+      </div>
+
       <!-- Q13: 中断使用全解 -->
       <div class="qa-card" data-topics="fundamentals interrupt" id="qa-fund-13">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
@@ -2866,51 +2911,6 @@ int adc_get_samples(struct adc_samples *out)
           </div>
 
           <div class="tags"><span class="tag">ADC</span><span class="tag">DMA</span><span class="tag">异步</span><span class="tag">k_poll</span><span class="tag">多通道</span><span class="tag">实战</span></div>
-        </div>
-      </div>
-
-      <!-- ADC-5: Kconfig命名发现 -->
-      <div class="qa-card" data-topics="adc pwm kconfig" id="qa-adc-5">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">为什么 ESP32 的 PWM 配置名是 CONFIG_PWM_ESP32_LEDC 而不是直觉上的 CONFIG_ESP32_PWM？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p><strong>因为 Zephyr 的配置名直接跟芯片硬件模块名，不同平台没有统一命名规范。</strong></p>
-
-          <table class="props">
-            <thead><tr><th>平台</th><th>PWM 外设配置名</th><th>为什么叫这个</th></tr></thead>
-            <tbody>
-              <tr><td>STM32</td><td><code>CONFIG_PWM_STM32</code></td><td>TIM 定时器做 PWM</td></tr>
-              <tr><td>ESP32 LEDC</td><td><code>CONFIG_PWM_ESP32_LEDC</code></td><td>LED Control PWM</td></tr>
-              <tr><td>ESP32 MCPWM</td><td><code>CONFIG_PWM_ESP32_MCPWM</code></td><td>Motor Control PWM</td></tr>
-              <tr><td>nRF52</td><td><code>CONFIG_PWM_NRF5_SW</code></td><td>nRF5 软件 PWM</td></tr>
-              <tr><td>NXP MCUX</td><td><code>CONFIG_PWM_MCUX</code></td><td>MCUXpresso SDK PWM</td></tr>
-            </tbody>
-          </table>
-
-          <p>ESP32 有两个不同用途的 PWM 硬件模块，所以必须用不同名字区分。<strong>Zephyr 不会为了命名统一把 LEDC 改成 ESP32_PWM</strong> — 它忠实反映芯片厂商标注的硬件模块名。</p>
-
-          <p><strong>发现正确名字的方法就一条命令：</strong></p>
-          <pre><code>ls zephyr/drivers/pwm/Kconfig.*
-# → Kconfig.stm32
-# → Kconfig.esp32_ledc        ← CONFIG_PWM_ESP32_LEDC
-# → Kconfig.esp32_mcpwm       ← CONFIG_PWM_ESP32_MCPWM
-# → Kconfig.nrf5_sw</code></pre>
-
-          <div class="rule-box">
-            <div class="rule-title">Kconfig 文件名 = CONFIG_ 后缀</div>
-            <ul>
-              <li><code>Kconfig.stm32</code> → <code>CONFIG_PWM_STM32=y</code></li>
-              <li><code>Kconfig.esp32_ledc</code> → <code>CONFIG_PWM_ESP32_LEDC=y</code></li>
-              <li><code>Kconfig.nrf5_sw</code> → <code>CONFIG_PWM_NRF5_SW=y</code></li>
-            </ul>
-          </div>
-
-          <p>这方法对任何外设都管用：<code>ls zephyr/drivers/&lt;外设名&gt;/Kconfig.*</code>，看到什么就写什么。</p>
-
-          <div class="tags"><span class="tag">Kconfig</span><span class="tag">命名</span><span class="tag">PWM</span><span class="tag">ESP32</span><span class="tag">LEDC</span></div>
         </div>
       </div>
 
