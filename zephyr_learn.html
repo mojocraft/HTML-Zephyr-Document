@@ -930,52 +930,6 @@
     <h2><span class="icon icon-setup">E</span> Zephyr 环境搭建</h2>
     <div class="qa-list">
 
-      <!-- SETUP-1: Zephyr与SDK的关系 -->
-      <div class="qa-card" data-topics="setup build environment" id="qa-setup-1">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">Zephyr 源码和 SDK 是什么关系？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p><strong>一句话：Zephyr 是源码（写什么），SDK 是编译工具（怎么编）。两个独立安装。</strong></p>
-
-          <table class="props">
-            <thead><tr><th></th><th>Zephyr 源码</th><th>Zephyr SDK</th></tr></thead>
-            <tbody>
-              <tr><td>是什么</td><td>RTOS 代码库</td><td>交叉编译工具链</td></tr>
-              <tr><td>包含</td><td><code>drivers/ kernel/ include/ boards/ samples/</code></td><td><code>arm-zephyr-eabi-gcc</code>、openocd、qemu、picolibc</td></tr>
-              <tr><td>你在代码里调谁</td><td><code>#include &lt;zephyr/drivers/pwm.h&gt;</code></td><td>不直接调，CMake 自动用</td></tr>
-              <tr><td>升级方式</td><td><code>west update</code></td><td>下载新 <code>.tar.xz</code> 解压</td></tr>
-            </tbody>
-          </table>
-
-          <p><strong>编译时如何协作：</strong></p>
-          <pre><code>west build -b myboard .
-        ↓
-CMakeLists.txt: find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
-        ↓                               ↓
-  加载 Zephyr 源码                   调用 SDK 工具链
-  (drivers/pwm.h 等)                (arm-zephyr-eabi-gcc)
-        ↓                               ↓
-              最终 .elf / .bin 固件</code></pre>
-          <p>依赖两个环境变量关联：<code>ZEPHYR_BASE</code>（源码路径）和 <code>ZEPHYR_SDK_INSTALL_DIR</code>（SDK 路径）。</p>
-
-          <p><strong>什么情况下你会感知到 SDK：</strong></p>
-          <table class="props">
-            <thead><tr><th>场景</th><th>用到的 SDK 组件</th><th>什么时候感知到</th></tr></thead>
-            <tbody>
-              <tr><td>编译</td><td><code>arm-zephyr-eabi-gcc</code></td><td>编译报错时</td></tr>
-              <tr><td>烧录</td><td>openocd / pyocd / jlink</td><td><code>west flash</code> 失败时</td></tr>
-              <tr><td>调试</td><td><code>arm-zephyr-eabi-gdb</code></td><td><code>west debug</code> 时</td></tr>
-              <tr><td>C 标准库</td><td>picolibc / newlib</td><td>之前 picolibc 编译报错那次</td></tr>
-            </tbody>
-          </table>
-
-          <div class="tags"><span class="tag">Zephyr</span><span class="tag">SDK</span><span class="tag">环境</span></div>
-        </div>
-      </div>
-
       <!-- SETUP-2: 如何下载 -->
       <div class="qa-card" data-topics="setup build environment" id="qa-setup-2">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
@@ -1019,6 +973,52 @@ tar -xf zephyr-sdk-0.17.4_macos-x86_64.tar.xz -C ~/
 cd ~/zephyr-sdk-0.17.4 && ./setup.sh</code></pre>
 
           <div class="tags"><span class="tag">下载</span><span class="tag">west init</span><span class="tag">LTS</span><span class="tag">SDK安装</span></div>
+        </div>
+      </div>
+
+      <!-- SETUP-1: Zephyr与SDK的关系 -->
+      <div class="qa-card" data-topics="setup build environment" id="qa-setup-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 源码和 SDK 是什么关系？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>一句话：Zephyr 是源码（写什么），SDK 是编译工具（怎么编）。两个独立安装。</strong></p>
+
+          <table class="props">
+            <thead><tr><th></th><th>Zephyr 源码</th><th>Zephyr SDK</th></tr></thead>
+            <tbody>
+              <tr><td>是什么</td><td>RTOS 代码库</td><td>交叉编译工具链</td></tr>
+              <tr><td>包含</td><td><code>drivers/ kernel/ include/ boards/ samples/</code></td><td><code>arm-zephyr-eabi-gcc</code>、openocd、qemu、picolibc</td></tr>
+              <tr><td>你在代码里调谁</td><td><code>#include &lt;zephyr/drivers/pwm.h&gt;</code></td><td>不直接调，CMake 自动用</td></tr>
+              <tr><td>升级方式</td><td><code>west update</code></td><td>下载新 <code>.tar.xz</code> 解压</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>编译时如何协作：</strong></p>
+          <pre><code>west build -b myboard .
+        ↓
+CMakeLists.txt: find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
+        ↓                               ↓
+  加载 Zephyr 源码                   调用 SDK 工具链
+  (drivers/pwm.h 等)                (arm-zephyr-eabi-gcc)
+        ↓                               ↓
+              最终 .elf / .bin 固件</code></pre>
+          <p>依赖两个环境变量关联：<code>ZEPHYR_BASE</code>（源码路径）和 <code>ZEPHYR_SDK_INSTALL_DIR</code>（SDK 路径）。</p>
+
+          <p><strong>什么情况下你会感知到 SDK：</strong></p>
+          <table class="props">
+            <thead><tr><th>场景</th><th>用到的 SDK 组件</th><th>什么时候感知到</th></tr></thead>
+            <tbody>
+              <tr><td>编译</td><td><code>arm-zephyr-eabi-gcc</code></td><td>编译报错时</td></tr>
+              <tr><td>烧录</td><td>openocd / pyocd / jlink</td><td><code>west flash</code> 失败时</td></tr>
+              <tr><td>调试</td><td><code>arm-zephyr-eabi-gdb</code></td><td><code>west debug</code> 时</td></tr>
+              <tr><td>C 标准库</td><td>picolibc / newlib</td><td>之前 picolibc 编译报错那次</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">Zephyr</span><span class="tag">SDK</span><span class="tag">环境</span></div>
         </div>
       </div>
 
