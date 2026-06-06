@@ -4219,7 +4219,61 @@ k_work_submit_to_queue(&amp;my_wq, &amp;my_work);</code></pre>
   <!-- ═══════════ 其他 ═══════════ -->
   <section class="topic-section topic-other" data-topic="other" id="sec-other">
     <h2>&#128230; 其他（构建 / Devicetree / 驱动模型 …）</h2>
-    <div class="qa-list"></div>
+    <div class="qa-list">
+
+      <!-- OTHER-1: find_package 参数 -->
+      <div class="qa-card" data-topics="other build cmake" id="qa-other-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CMakeLists.txt 中 find_package 的 REQUIRED 和 HINTS 分别是什么意思？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>逐个参数拆解：</strong></p>
+          <pre><code>find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+             │       │         │        └─ 环境变量，展开为实际路径
+             │       │         └─ 优先搜索这个路径
+             │       └─ 找不到就报错，停止构建
+             └─ 要找的包名</code></pre>
+
+          <table class="props">
+            <thead><tr><th>参数</th><th>作用</th><th>不加的后果</th></tr></thead>
+            <tbody>
+              <tr><td><code>REQUIRED</code></td><td>找不到包时 CMake 立刻报错停止</td><td>只出警告，后续编译时报一堆看不懂的错误</td></tr>
+              <tr><td><code>HINTS &lt;path&gt;</code></td><td>给 CMake 一个优先搜索路径，先搜这里再搜系统默认路径</td><td>如果 Zephyr 不在系统默认路径中，CMake 找不到</td></tr>
+              <tr><td><code>$ENV{ZEPHYR_BASE}</code></td><td>读取环境变量 ZEPHYR_BASE 的值</td><td>等价于硬编码路径 <code>~/zephyrproject/zephyr</code></td></tr>
+            </tbody>
+          </table>
+
+          <p>实际执行流程：CMake 先去 <code>$ENV{ZEPHYR_BASE}</code>（你的 Zephyr 源码目录）找 <code>ZephyrConfig.cmake</code>，找到了就加载整个 Zephyr 构建系统。找不到就报 <code>Could not find a package configuration file ...</code> 然后停掉。</p>
+
+          <div class="tags"><span class="tag">CMake</span><span class="tag">find_package</span><span class="tag">REQUIRED</span><span class="tag">HINTS</span></div>
+        </div>
+      </div>
+
+      <!-- OTHER-2: Zephyr 大小写 -->
+      <div class="qa-card" data-topics="other build cmake" id="qa-other-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">系统中 zephyr 目录是小写，为什么 find_package 里要写大写 Z 的 Zephyr？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>因为 <code>find_package</code> 找的是 <code>ZephyrConfig.cmake</code> 文件，不是目录。</strong></p>
+          <pre><code>路径是小写 zephyr →    ~/zephyrproject/zephyr/...
+                                          ↑ 目录名，跟 CMake 无关
+要匹配的文件是大 Z  →   .../share/zephyr-package/cmake/ZephyrConfig.cmake
+                          ↑ CMake 用这个名字去匹配                          </code></pre>
+
+          <p>CMake 的规则：<code>find_package(&lt;Name&gt;)</code> 去找 <code>&lt;Name&gt;Config.cmake</code>，<code>&lt;Name&gt;</code> 的大小写必须和文件名<strong>完全一致</strong>。Zephyr 项目选择用大写 Z 命名这个文件，所以 <code>find_package</code> 里也必须写大写 Z。</p>
+
+          <p>同理：<code>find_package(Python3 ...)</code> 大写 P，<code>find_package(ZLIB ...)</code> 全大写，都是跟随对应 Config.cmake 文件的命名。</p>
+
+          <div class="tags"><span class="tag">CMake</span><span class="tag">find_package</span><span class="tag">命名约定</span><span class="tag">Config.cmake</span></div>
+        </div>
+      </div>
+
+    </div>
   </section>
 
 </main>
