@@ -4518,7 +4518,14 @@ CMakeLists.txt: find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
 
           <p><strong>下载 Zephyr 源码：</strong></p>
           <pre><code>pip install west                        # 先装 west
-west init ~/zephyrproject                # 初始化工作区
+
+# 默认：下载最新开发版（main 分支）
+west init ~/zephyrproject
+
+# 推荐：指定 LTS 版本（如 v3.7.2）
+west init --mr v3.7.2 ~/zephyrproject
+#         └─ manifest revision：tag / 分支 / commit hash
+
 cd ~/zephyrproject
 west update                              # 下载源码+模块
 west export                              # 导出环境变量
@@ -4530,14 +4537,14 @@ west export                              # 导出环境变量
 └── bootloader/      ← MCUboot</code></pre>
 
           <p><strong>下载 SDK：</strong></p>
-          <pre><code># 方法一：下载预编译包
+          <pre><code># 方法一：west 自动下载（推荐）
+west sdk install
+
+# 方法二：手动下载预编译包
 wget https://github.com/zephyrproject-rtos/sdk-ng/releases/\
 download/v0.17.4/zephyr-sdk-0.17.4_macos-x86_64.tar.xz
 tar -xf zephyr-sdk-0.17.4_macos-x86_64.tar.xz -C ~/
-cd ~/zephyr-sdk-0.17.4 && ./setup.sh
-
-# 方法二：west 自动下载（推荐）
-west sdk install</code></pre>
+cd ~/zephyr-sdk-0.17.4 && ./setup.sh</code></pre>
 
           <p><strong>版本兼容性怎么确定：</strong></p>
           <pre><code># 看 Zephyr 源码里声明的 SDK 要求
