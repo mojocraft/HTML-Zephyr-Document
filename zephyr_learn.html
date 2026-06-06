@@ -1916,6 +1916,79 @@ void main(void) {
         </div>
       </div>
 
+      <!-- Q14: 创建新板子完整流程 -->
+      <div class="qa-card" data-topics="fundamentals board" id="qa-fund-14">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">新建板子的完整操作流程是怎样的？从复制官方 boards 到 west build 编译成功。</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">1</span><div class="layer-label">从官方复制相近板子</div><div class="layer-desc"><code>cp -r zephyr/boards/st/nucleo_f429zi/ boards/&lt;vendor&gt;/myboard/</code></div></div>
+            <div class="layer layer-mid"><span class="layer-num">2</span><div class="layer-label">改名字</div><div class="layer-desc">Kconfig.&lt;board&gt;、&lt;board&gt;.yaml、board.yml 中的板名换成 myboard</div></div>
+            <div class="layer layer-mid"><span class="layer-num">3</span><div class="layer-label">写应用层文件</div><div class="layer-desc">prj.conf + src/main.c + CMakeLists.txt + myboard.overlay</div></div>
+            <div class="layer layer-bot"><span class="layer-num">4</span><div class="layer-label">编译</div><div class="layer-desc"><code>west build -b myboard .</code></div></div>
+          </div>
+
+          <p><strong>最终工程结构：</strong></p>
+          <pre><code>my_project/
+├── CMakeLists.txt             # BOARD_ROOT + project()
+├── prj.conf                   # 你的 Kconfig 配置
+├── myboard.overlay            # 你的外设引脚（追加到板级 dts）
+├── boards/&lt;vendor&gt;/myboard/   # 从官方抄来的 7 个文件
+│   ├── Kconfig.myboard        # ← 改：config BOARD_MYBOARD
+│   ├── Kconfig.defconfig      # ← 改：if BOARD_MYBOARD
+│   ├── myboard_defconfig      # 同 SoC 不改
+│   ├── myboard.dts            # 同 SoC 不改（overlay 追加即可）
+│   ├── myboard.yaml           # ← 改：identifier
+│   ├── board.yml              # ← 改：name / vendor / socs
+│   └── board.cmake            # 同 SoC 不改
+└── src/
+    └── main.c</code></pre>
+
+          <p><strong>CMakeLists.txt 标准写法：</strong></p>
+          <pre><code>cmake_minimum_required(VERSION 3.20.0)
+
+# BOARD_ROOT 必须在 find_package 之前
+list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(my_app)
+
+target_sources(app PRIVATE src/main.c)</code></pre>
+
+          <p><strong>芯片相同时，实际只需要改 3 个文件：</strong></p>
+          <table class="props">
+            <thead><tr><th>需要改（名字相关）</th><th>不需要改（芯片相同）</th></tr></thead>
+            <tbody>
+              <tr><td><code>Kconfig.&lt;board&gt;</code> — <code>config BOARD_XXX</code></td><td><code>board.cmake</code> — runner 参数相同</td></tr>
+              <tr><td><code>&lt;board&gt;.yaml</code> — <code>identifier</code></td><td><code>&lt;board&gt;_defconfig</code> — SoC 型号相同</td></tr>
+              <tr><td><code>board.yml</code> — <code>name/vendor/socs</code></td><td><code>&lt;board&gt;.dts</code> 中的 <code>#include</code> — 芯片相同</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>验证编译：</strong></p>
+          <pre><code>/* src/main.c — 最简单的验证程序 */
+#include &lt;zephyr/kernel.h&gt;
+
+void main(void)
+{
+    printk("Hello from my custom board!\n");
+    while (1) { k_msleep(1000); }
+}</code></pre>
+          <pre><code>west build -b myboard .
+# 成功！你的第一个自定义板子跑起来了</code></pre>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span><strong>.overlay vs 直接改 .dts：</strong>外设改动少用 .overlay 追加——不改官方抄来的板级 dts，升级 Zephyr 版本时不会冲突。改动大到"已经不是原来的板子了"就直接改 .dts。</span>
+          </div>
+
+          <div class="tags"><span class="tag">board</span><span class="tag">编译</span><span class="tag">CMake</span><span class="tag">快速上手</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
