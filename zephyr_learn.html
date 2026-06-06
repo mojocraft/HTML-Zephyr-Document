@@ -4009,6 +4009,83 @@ k_work_schedule(&amp;my_work, K_MSEC(100));  /* 100ms 后执行 */</code></pre>
       </div>
 
 
+      <!-- OTHER-4: Zephyr与SDK的关系 -->
+      <div class="qa-card" data-topics="other build environment" id="qa-other-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 源码和 SDK 是什么关系？如何下载？版本兼容性怎么确定？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>一句话：Zephyr 是源码（写什么），SDK 是编译工具（怎么编）。两个独立安装。</strong></p>
+
+          <table class="props">
+            <thead><tr><th></th><th>Zephyr 源码</th><th>Zephyr SDK</th></tr></thead>
+            <tbody>
+              <tr><td>是什么</td><td>RTOS 代码库</td><td>交叉编译工具链</td></tr>
+              <tr><td>包含</td><td><code>drivers/ kernel/ include/ boards/ samples/</code></td><td><code>arm-zephyr-eabi-gcc</code>、openocd、qemu、picolibc</td></tr>
+              <tr><td>你在代码里调谁</td><td><code>#include &lt;zephyr/drivers/pwm.h&gt;</code></td><td>不直接调，CMake 自动用</td></tr>
+              <tr><td>升级方式</td><td><code>west update</code></td><td>下载新 <code>.tar.xz</code> 解压</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>编译时如何协作：</strong></p>
+          <pre><code>你写 west build -b myboard .
+        ↓
+CMakeLists.txt: find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
+        ↓                               ↓
+  加载 Zephyr 源码                   调用 SDK 工具链
+  (drivers/pwm.h 等)                (arm-zephyr-eabi-gcc)
+        ↓                               ↓
+              最终 .elf / .bin 固件</code></pre>
+          <p>依赖两个环境变量关联：<code>ZEPHYR_BASE</code>（源码路径）和 <code>ZEPHYR_SDK_INSTALL_DIR</code>（SDK 路径）。</p>
+
+          <p><strong>下载 Zephyr 源码：</strong></p>
+          <pre><code>pip install west                        # 先装 west
+west init ~/zephyrproject                # 初始化工作区
+cd ~/zephyrproject
+west update                              # 下载源码+模块
+west export                              # 导出环境变量
+
+# 目录结构
+~/zephyrproject/
+├── zephyr/          ← 内核 + 驱动 + samples
+├── modules/         ← HAL 层（ST/ESP/NXP 厂商代码）
+└── bootloader/      ← MCUboot</code></pre>
+
+          <p><strong>下载 SDK：</strong></p>
+          <pre><code># 方法一：下载预编译包
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/\
+download/v0.17.4/zephyr-sdk-0.17.4_macos-x86_64.tar.xz
+tar -xf zephyr-sdk-0.17.4_macos-x86_64.tar.xz -C ~/
+cd ~/zephyr-sdk-0.17.4 && ./setup.sh
+
+# 方法二：west 自动下载（推荐）
+west sdk install</code></pre>
+
+          <p><strong>版本兼容性怎么确定：</strong></p>
+          <pre><code># 看 Zephyr 源码里声明的 SDK 要求
+cat ~/zephyrproject/zephyr/sdk_version
+# → 0.16.4（示例：该 Zephyr 版本要求 SDK &ge; 0.16.4）</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">版本规则</div>
+            <ul>
+              <li>SDK 可以比 Zephyr 声明的版本<strong>更新</strong>，不能更旧</li>
+              <li>大版本通常向下兼容（SDK 0.17 支持 Zephyr 3.x 全系列）</li>
+              <li>部分 SDK 组件（如 picolibc）有小版本差异 → 用 <code>CONFIG_MINIMAL_LIBC=y</code> 绕开</li>
+            </ul>
+          </div>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>实践建议：</strong>用 <code>west sdk install</code> 自动匹配版本，它知道该下哪个。手动下载时去 <a href="https://github.com/zephyrproject-rtos/sdk-ng/releases">GitHub Releases</a> 看 <code>sdk_version</code> 文件对应的版本号。</span>
+          </div>
+
+          <div class="tags"><span class="tag">SDK</span><span class="tag">Zephyr源码</span><span class="tag">环境搭建</span><span class="tag">版本兼容</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
