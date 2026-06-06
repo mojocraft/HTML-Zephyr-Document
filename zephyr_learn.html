@@ -1775,20 +1775,19 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
       <div class="qa-card" data-topics="fundamentals pwm kconfig" id="qa-fund-kconfig-naming">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
           <span class="marker">Q</span>
-          <span class="text">为什么 ESP32 的 PWM 配置名是 CONFIG_PWM_ESP32_LEDC 而不是直觉上的 CONFIG_ESP32_PWM？</span>
+          <span class="text">为什么 ESP32 的 PWM 配置名是 CONFIG_PWM_LED_ESP32 而不是直觉上的 CONFIG_ESP32_PWM？</span>
           <span class="arrow">▶</span>
         </div>
         <div class="a">
           <p><strong>因为 Zephyr 的配置名直接跟芯片硬件模块名，不同平台没有统一命名规范。</strong></p>
 
           <table class="props">
-            <thead><tr><th>平台</th><th>PWM 外设配置名</th><th>为什么叫这个</th></tr></thead>
+            <thead><tr><th>平台</th><th>Kconfig 文件</th><th>配置名（从文件里读到的）</th><th>驱动源码</th></tr></thead>
             <tbody>
-              <tr><td>STM32</td><td><code>CONFIG_PWM_STM32</code></td><td>TIM 定时器做 PWM</td></tr>
-              <tr><td>ESP32 LEDC</td><td><code>CONFIG_PWM_ESP32_LEDC</code></td><td>LED Control PWM</td></tr>
-              <tr><td>ESP32 MCPWM</td><td><code>CONFIG_PWM_ESP32_MCPWM</code></td><td>Motor Control PWM</td></tr>
-              <tr><td>nRF52</td><td><code>CONFIG_PWM_NRF5_SW</code></td><td>nRF5 软件 PWM</td></tr>
-              <tr><td>NXP MCUX</td><td><code>CONFIG_PWM_MCUX</code></td><td>MCUXpresso SDK PWM</td></tr>
+              <tr><td>STM32</td><td><code>Kconfig.stm32</code></td><td><code>CONFIG_PWM_STM32</code></td><td><code>pwm_stm32.c</code></td></tr>
+              <tr><td>ESP32 LED</td><td rowspan="2"><code>Kconfig.esp32</code></td><td><code>CONFIG_PWM_LED_ESP32</code></td><td><code>pwm_led_esp32.c</code></td></tr>
+              <tr><td>ESP32 MCPWM</td><td><code>CONFIG_MCPWM_ESP32</code></td><td><code>pwm_mc_esp32.c</code></td></tr>
+              <tr><td>nRF52</td><td><code>Kconfig.nrf5_sw</code></td><td><code>CONFIG_PWM_NRF5_SW</code></td><td><code>pwm_nrf5_sw.c</code></td></tr>
             </tbody>
           </table>
 
@@ -1797,16 +1796,20 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
           <p><strong>发现正确名字的方法就一条命令：</strong></p>
           <pre><code>ls zephyr/drivers/pwm/Kconfig.*
 # → Kconfig.stm32
-# → Kconfig.esp32_ledc        ← CONFIG_PWM_ESP32_LEDC
-# → Kconfig.esp32_mcpwm       ← CONFIG_PWM_ESP32_MCPWM
-# → Kconfig.nrf5_sw</code></pre>
+# → Kconfig.esp32            ← 两个 ESP32 PWM 驱动都在这个文件里
+# → Kconfig.nrf5_sw
+
+# 然后看文件内容
+cat zephyr/drivers/pwm/Kconfig.esp32
+# config PWM_LED_ESP32      → CONFIG_PWM_LED_ESP32=y
+# config MCPWM_ESP32        → CONFIG_MCPWM_ESP32=y</code></pre>
 
           <div class="rule-box">
-            <div class="rule-title">Kconfig 文件名 = CONFIG_ 后缀</div>
+            <div class="rule-title">方法不变：先 ls 找文件，再 cat 看内容</div>
             <ul>
-              <li><code>Kconfig.stm32</code> → <code>CONFIG_PWM_STM32=y</code></li>
-              <li><code>Kconfig.esp32_ledc</code> → <code>CONFIG_PWM_ESP32_LEDC=y</code></li>
-              <li><code>Kconfig.nrf5_sw</code> → <code>CONFIG_PWM_NRF5_SW=y</code></li>
+              <li><code>ls Kconfig.*</code> → 知道有哪些平台的驱动文件</li>
+              <li><code>cat Kconfig.esp32</code> → 文件里 <code>config XXX</code> 就是你要写的 <code>CONFIG_XXX=y</code></li>
+              <li><strong>不要猜文件名后缀</strong> — 不同平台完全不同（<code>.stm32</code> / <code>.esp32</code> / <code>.nrf5_sw</code>）</li>
             </ul>
           </div>
 
@@ -1828,7 +1831,7 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
           <span class="arrow">▶</span>
         </div>
         <div class="a">
-          <p><strong>启用了 <code>CONFIG_PWM_ESP32_LEDC=y</code>，然后呢？链路很固定：</strong></p>
+          <p><strong>启用了 <code>CONFIG_PWM_LED_ESP32=y</code>，然后呢？链路很固定：</strong></p>
 
           <div class="path-flow">
             <span class="path-node device">Kconfig 文件名</span>
@@ -1842,12 +1845,12 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
 
           <p><strong>第一步：从 Kconfig 文件名反查驱动目录</strong></p>
           <pre><code># Kconfig 文件名 → 确定是哪个目录的驱动
-Kconfig.esp32_ledc  →  drivers/pwm/ 下的 ESP32 LEDC 驱动
+Kconfig.esp32  →  drivers/pwm/ 下的 ESP32 PWM 驱动
 
 # 直接找 C 源码
 ls zephyr/drivers/pwm/*esp32*
-# → pwm_esp32_ledc.c       ← 驱动实现
-# → pwm_esp32_mcpwm.c      ← 另一个 PWM 驱动</code></pre>
+# → pwm_led_esp32.c        ← LED PWM 驱动
+# → pwm_mc_esp32.c         ← MCPWM 驱动</code></pre>
 
           <p><strong>第二步：找到头文件 → 看 API</strong></p>
           <p>Zephyr 外设的头文件在固定位置，<strong>文件名就是外设名</strong>：</p>
@@ -1874,7 +1877,7 @@ ls zephyr/tests/drivers/pwm/
             <thead><tr><th>外设</th><th>Kconfig 文件</th><th>驱动源码</th><th>头文件</th><th>samples</th></tr></thead>
             <tbody>
               <tr><td>GPIO</td><td><code>drivers/gpio/Kconfig.stm32</code></td><td><code>drivers/gpio/gpio_stm32.c</code></td><td><code>drivers/gpio.h</code></td><td><code>samples/drivers/gpio/</code></td></tr>
-              <tr><td>PWM</td><td><code>drivers/pwm/Kconfig.esp32_ledc</code></td><td><code>drivers/pwm/pwm_esp32_ledc.c</code></td><td><code>drivers/pwm.h</code></td><td><code>tests/drivers/pwm/</code></td></tr>
+              <tr><td>PWM</td><td><code>drivers/pwm/Kconfig.esp32</code></td><td><code>drivers/pwm/pwm_led_esp32.c</code></td><td><code>drivers/pwm.h</code></td><td><code>tests/drivers/pwm/</code></td></tr>
               <tr><td>I&sup2;C</td><td><code>drivers/i2c/Kconfig.stm32</code></td><td><code>drivers/i2c/i2c_ll_stm32.c</code></td><td><code>drivers/i2c.h</code></td><td><code>samples/drivers/i2c/</code></td></tr>
               <tr><td>SPI</td><td><code>drivers/spi/Kconfig.stm32</code></td><td><code>drivers/spi/spi_ll_stm32.c</code></td><td><code>drivers/spi.h</code></td><td><code>samples/drivers/spi/</code></td></tr>
               <tr><td>UART</td><td><code>drivers/serial/Kconfig.stm32</code></td><td><code>drivers/serial/uart_stm32.c</code></td><td><code>drivers/uart.h</code></td><td><code>samples/drivers/uart/</code></td></tr>
