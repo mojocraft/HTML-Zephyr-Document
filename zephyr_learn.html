@@ -4327,6 +4327,11 @@ CONFIG_MINIMAL_LIBC=y     # 强制启用 minimal libc</code></pre>
             <span><strong>什么时候不能换 minimal libc？</strong>需要 <code>%f</code> 打印浮点数、<code>%lld</code> 64位整数、完整的 <code>math.h</code> 三角函数等 picolibc 才有的功能时。这些功能 minimal libc 不支持或支持不完整。</span>
           </div>
 
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span><strong>ESP32 不受影响：</strong>ESP32 使用 Xtensa 工具链，默认 C 库是 <code>CONFIG_NEWLIB_LIBC=y</code>，不依赖 picolibc，不需要加这两行配置。</span>
+          </div>
+
           <div class="tags"><span class="tag">picolibc</span><span class="tag">minimal-libc</span><span class="tag">编译错误</span><span class="tag">SDK兼容</span></div>
         </div>
       </div>
