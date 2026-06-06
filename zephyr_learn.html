@@ -963,6 +963,19 @@ west export                              # 导出环境变量
             <span><code>--mr</code> 可以接任何 Git 引用：tag（<code>v3.7.2</code>）、分支（<code>v3.7-branch</code>）、commit hash。之后 <code>west update</code> 会把 modules 也拉到对应兼容版本。</span>
           </div>
 
+          <p><strong>如何知道最新 LTS 版本号：</strong></p>
+          <pre><code># 方法一：看 GitHub Releases（推荐）
+# 打开 https://github.com/zephyrproject-rtos/zephyr/releases
+# 找标签带 "LTS" 的最新版本 → 当前是 v3.7.2
+
+# 方法二：命令行查 Git tags
+git ls-remote --tags https://github.com/zephyrproject-rtos/zephyr.git \
+  | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+$' \
+  | sort -V | tail -5
+# → v3.7.2  ← 最新 LTS
+# → v4.1.0  ← 最新非 LTS</code></pre>
+          <p>GitHub Releases 页面上 LTS 版本会有明确的 <strong>LTS</strong> 标记，非 LTS 版本不标。</p>
+
           <p><strong>下载 SDK：</strong></p>
           <pre><code># 方法一：west 自动下载（推荐）
 west sdk install
