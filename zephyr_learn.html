@@ -1797,6 +1797,83 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
         </div>
       </div>
 
+      <!-- 找到配置后怎么用：Kconfig → 驱动 → API 全链路 -->
+      <div class="qa-card" data-topics="fundamentals api kconfig" id="qa-fund-kconfig-to-api">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">找到 Kconfig 配置名并打开之后，如何找到对应的驱动 API 和用法？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>启用了 <code>CONFIG_PWM_ESP32_LEDC=y</code>，然后呢？链路很固定：</strong></p>
+
+          <div class="path-flow">
+            <span class="path-node device">Kconfig 文件名</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node binding">驱动 C 源码</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node source">头文件</span>
+            <span class="path-arrow">→</span>
+            <span class="path-node" style="background:#ede9fe;color:#5b21b6;">samples</span>
+          </div>
+
+          <p><strong>第一步：从 Kconfig 文件名反查驱动目录</strong></p>
+          <pre><code># Kconfig 文件名 → 确定是哪个目录的驱动
+Kconfig.esp32_ledc  →  drivers/pwm/ 下的 ESP32 LEDC 驱动
+
+# 直接找 C 源码
+ls zephyr/drivers/pwm/*esp32*
+# → pwm_esp32_ledc.c       ← 驱动实现
+# → pwm_esp32_mcpwm.c      ← 另一个 PWM 驱动</code></pre>
+
+          <p><strong>第二步：找到头文件 → 看 API</strong></p>
+          <p>Zephyr 外设的头文件在固定位置，<strong>文件名就是外设名</strong>：</p>
+          <pre><code># PWM 的头文件
+zephyr/include/zephyr/drivers/pwm.h
+
+# 核心 API 就在最前面
+int pwm_set_dt(const struct pwm_dt_spec *spec,
+               uint32_t period, uint32_t pulse);
+int pwm_set_pulse_dt(const struct pwm_dt_spec *spec,
+                     uint32_t pulse);
+
+# 获取设备的宏
+#define PWM_DT_SPEC_GET(node_id)  ...</code></pre>
+
+          <p><strong>第三步：看 samples → 学调用流程</strong></p>
+          <pre><code>ls zephyr/samples/drivers/pwm/
+# → (该项目没有 PWM sample，看测试用例)
+ls zephyr/tests/drivers/pwm/
+# → pwm_api/  ← 测试用例展示了所有 API 的标准用法</code></pre>
+
+          <p><strong>全链路速查表：</strong></p>
+          <table class="props">
+            <thead><tr><th>外设</th><th>Kconfig 文件</th><th>驱动源码</th><th>头文件</th><th>samples</th></tr></thead>
+            <tbody>
+              <tr><td>GPIO</td><td><code>drivers/gpio/Kconfig.stm32</code></td><td><code>drivers/gpio/gpio_stm32.c</code></td><td><code>drivers/gpio.h</code></td><td><code>samples/drivers/gpio/</code></td></tr>
+              <tr><td>PWM</td><td><code>drivers/pwm/Kconfig.esp32_ledc</code></td><td><code>drivers/pwm/pwm_esp32_ledc.c</code></td><td><code>drivers/pwm.h</code></td><td><code>tests/drivers/pwm/</code></td></tr>
+              <tr><td>I&sup2;C</td><td><code>drivers/i2c/Kconfig.stm32</code></td><td><code>drivers/i2c/i2c_ll_stm32.c</code></td><td><code>drivers/i2c.h</code></td><td><code>samples/drivers/i2c/</code></td></tr>
+              <tr><td>SPI</td><td><code>drivers/spi/Kconfig.stm32</code></td><td><code>drivers/spi/spi_ll_stm32.c</code></td><td><code>drivers/spi.h</code></td><td><code>samples/drivers/spi/</code></td></tr>
+              <tr><td>UART</td><td><code>drivers/serial/Kconfig.stm32</code></td><td><code>drivers/serial/uart_stm32.c</code></td><td><code>drivers/uart.h</code></td><td><code>samples/drivers/uart/</code></td></tr>
+              <tr><td>ADC</td><td><code>drivers/adc/Kconfig.stm32</code></td><td><code>drivers/adc/adc_stm32.c</code></td><td><code>drivers/adc.h</code></td><td><code>samples/drivers/adc/</code></td></tr>
+              <tr><td>CAN</td><td><code>drivers/can/Kconfig.stm32</code></td><td><code>drivers/can/can_stm32.c</code></td><td><code>drivers/can.h</code></td><td><code>samples/net/sockets/can/</code></td></tr>
+            </tbody>
+          </table>
+
+          <div class="rule-box">
+            <div class="rule-title">从配置到跑通的完整路径</div>
+            <ul>
+              <li><code>ls zephyr/drivers/&lt;外设&gt;/Kconfig.*</code> → 找配置名，写入 prj.conf</li>
+              <li><code>zephyr/include/zephyr/drivers/&lt;外设&gt;.h</code> → 看 API 函数签名和获取设备的宏</li>
+              <li><code>zephyr/samples/drivers/&lt;外设&gt;/</code> → 看标准调用流程（没有 sample 就看 tests）</li>
+              <li>不需要去读驱动 C 源码（除非遇到 bug）— 头文件和 samples 足够</li>
+            </ul>
+          </div>
+
+          <div class="tags"><span class="tag">API</span><span class="tag">Kconfig</span><span class="tag">驱动</span><span class="tag">头文件</span><span class="tag">samples</span></div>
+        </div>
+      </div>
+
       <!-- Q13: 中断使用全解 -->
       <div class="qa-card" data-topics="fundamentals interrupt" id="qa-fund-13">
         <div class="q" onclick="this.parentElement.classList.toggle('open')">
