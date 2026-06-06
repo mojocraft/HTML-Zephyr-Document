@@ -4010,6 +4010,7 @@ k_work_schedule(&amp;my_work, K_MSEC(100));  /* 100ms 后执行 */</code></pre>
 
 
 
+
     </div>
   </section>
 
@@ -4558,6 +4559,53 @@ cat ~/zephyrproject/zephyr/sdk_version
           </div>
 
           <div class="tags"><span class="tag">SDK</span><span class="tag">Zephyr源码</span><span class="tag">环境搭建</span><span class="tag">版本兼容</span></div>
+        </div>
+      </div>
+      <!-- OTHER-5: modules目录 -->
+      <div class="qa-card" data-topics="other build environment" id="qa-other-5">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">~/zephyrproject/modules/ 里面是什么？是各种 MCU 的底层硬件驱动库吗？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>对，就是各 MCU 厂商的底层 HAL（硬件抽象层）驱动库。</strong>由 <code>west update</code> 自动从厂商 GitHub 仓库拉下来。</p>
+
+          <pre><code>modules/hal/
+├── stm32/          ← STM32Cube HAL（寄存器级驱动）
+├── espressif/      ← ESP-IDF HAL
+├── nxp/            ← NXP MCUXpresso SDK HAL
+├── nordic/         ← nRF Connect SDK HAL
+├── atmel/          ← Microchip/Atmel HAL
+├── ti/             ← TI SimpleLink HAL
+├── rpi_pico/       ← Raspberry Pi Pico SDK
+├── gigadevice/     ← GD32 HAL
+└── ...30+ 厂商</code></pre>
+
+          <p><strong>在你的工程中扮演的角色：</strong></p>
+          <pre><code>你的 main.c
+    ↓ 调 Zephyr API
+zephyr/drivers/pwm/pwm_led_esp32.c    ← Zephyr 封装层
+    ↓ 调 HAL 函数
+modules/hal/espressif/.../ledc.c      ← 厂商的寄存器级驱动
+    ↓ 写寄存器
+ESP32-S3 硬件</code></pre>
+
+          <p>你平时只面对 Zephyr API（<code>pwm_set_dt()</code>），完全不需要直接调 HAL。但有<strong>两种情况会接触到</strong>：</p>
+          <table class="props">
+            <thead><tr><th>场景</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td>Zephyr 没封装的功能</td><td>要用 STM32 某个特殊定时器模式 → 直接 <code>#include &lt;stm32f4xx_hal.h&gt;</code> 调 Cube HAL</td></tr>
+              <tr><td>调试硬件问题</td><td>PWM 不输出 → 翻 HAL 源码看寄存器配置是否正确</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>这些不是 Zephyr 写的</strong> — 它们是各芯片厂商官方发布、Zephyr 通过 <code>west update</code> 拉下来集成的。升级方式是对应厂商的 GitHub 仓库更新。</span>
+          </div>
+
+          <div class="tags"><span class="tag">modules</span><span class="tag">HAL</span><span class="tag">厂商驱动</span><span class="tag">west update</span></div>
         </div>
       </div>
 
