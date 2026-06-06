@@ -4688,6 +4688,24 @@ ESP32-S3 硬件</code></pre>
         </div>
       </div>
 
+      <!-- OTHER-6: target_sources中的app -->
+      <div class="qa-card" data-topics="other build cmake" id="qa-other-6">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CMakeLists.txt 中 target_sources 的 app 可以是其它名称吗？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>不能。</strong><code>app</code> 是 Zephyr 构建系统内部创建的目标名，<code>find_package(Zephyr ...)</code> 执行时自动注册，后面所有编译、链接步骤都引用这个名字。</p>
+          <pre><code>target_sources(app PRIVATE src/main.c)
+              ↑
+         必须叫 app，Zephyr 内部写死的</code></pre>
+          <p>换成 <code>my_app</code> 或者其他名字，CMake 会报不认识的目标。</p>
+          <p>你能改的是 <code>project(my_app)</code> 里的项目名——那个只影响生成的固件文件名（<code>my_app.elf</code> / <code>my_app.bin</code>），和目标名 <code>app</code> 无关。</p>
+          <div class="tags"><span class="tag">CMake</span><span class="tag">target_sources</span><span class="tag">构建</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
