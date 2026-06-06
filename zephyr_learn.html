@@ -832,15 +832,103 @@
   .rule-box ul { margin: 0; padding-left: 18px; }
   .rule-box li { margin-bottom: 3px; font-size: 0.86rem; }
 
+  /* ── 汉堡菜单按钮 ── */
+  .hamburger {
+    display: none; position: fixed; top: 16px; left: 16px; z-index: 1002;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--border);
+    cursor: pointer; font-size: 1.3rem;
+    align-items: center; justify-content: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    transition: all 0.25s ease;
+  }
+  .hamburger:hover { border-color: var(--primary); }
+
+  /* ── 移动端遮罩 ── */
+  .nav-overlay {
+    display: none; position: fixed; inset: 0; z-index: 999;
+    background: rgba(0,0,0,0.4); opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .nav-overlay.show { opacity: 1; }
+
   /* 响应式 */
   @media (max-width: 768px) {
-    body { flex-direction: column; }
+    body { flex-direction: column; padding-top: 0; }
+
+    .hamburger { display: flex; }
+    .nav-overlay.show { display: block; }
+
     nav {
-      width: 100%; height: auto; position: static;
-      border-right: none; border-bottom: 1px solid var(--border);
+      position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 1000;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-right: 1px solid var(--border);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+      overflow-y: auto;
     }
-    main { padding: 20px; }
+    nav.open { transform: translateX(0); }
+
+    main {
+      padding: 16px; max-width: 100%;
+      margin-top: 56px;  /* 给顶部控件留空间 */
+    }
+
+    /* 按钮行：横向滚动 */
+    .btn-row {
+      flex-wrap: nowrap; overflow-x: auto;
+      padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .btn-row::-webkit-scrollbar { display: none; }
+    .btn {
+      flex-shrink: 0; padding: 8px 14px; font-size: 0.8rem;
+      min-height: 36px;
+    }
+
+    /* 控件面板不挡住汉堡菜单 */
+    .ctrl-panel { top: 16px; right: 12px; gap: 8px; }
+    .cursor-dropdown-trigger { padding: 8px 12px; font-size: 0.75rem; height: 40px; }
+
+    /* 标题 */
+    main h2 { font-size: 1.15rem; padding: 10px 14px; }
+    main h2 .icon { width: 28px; height: 28px; font-size: 13px; }
+
+    /* 卡片 */
+    .qa-card .q { padding: 12px 14px; gap: 8px; }
+    .qa-card .q .marker { width: 26px; height: 26px; font-size: 0.8rem; }
+    .qa-card .q .text { font-size: 0.88rem; }
+    .qa-card .a { padding: 4px 12px 14px 42px; font-size: 0.85rem; }
+
+    /* 代码块 */
+    pre { padding: 10px 12px; font-size: 0.76rem; }
+    pre code { font-size: 0.76rem; }
+
+    /* 表格在小屏上左右滚动 */
+    table.props { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* 三分支图在小屏上堆叠 */
+    .code-branches { flex-direction: column; align-items: center; }
+    .code-branch { max-width: 100%; }
+
+    /* 对照图文在小屏上堆叠 */
+    .dt-yaml-arrow { transform: rotate(90deg); padding-top: 0; }
+
+    /* 右下角按钮缩小 */
+    .back-to-top { bottom: 16px; right: 16px; width: 40px; height: 40px; font-size: 1rem; }
   }
+
+  /* 小屏手机进一步优化 */
+  @media (max-width: 480px) {
+    main { padding: 12px; margin-top: 50px; }
+    main h2 { font-size: 1.05rem; }
+    .qa-card .q .text { font-size: 0.84rem; }
+    .qa-card .a { padding: 4px 8px 12px 34px; font-size: 0.82rem; }
+    .ctrl-panel { top: 10px; right: 8px; gap: 6px; }
+    .theme-toggle { width: 38px; height: 38px; }
+    .stats-bar { gap: 8px; font-size: 0.76rem; }
+  }
+
   /* ── 回到顶部按钮 ── */
   .back-to-top {
     position: fixed; bottom: 24px; right: 24px; z-index: 1000;
@@ -869,6 +957,9 @@
 
 <canvas id="cursorTrail"></canvas>
 <div class="cyber-cursor" id="cyberCursor"></div>
+
+<button class="hamburger" id="hamburgerBtn" aria-label="菜单">&#9776;</button>
+<div class="nav-overlay" id="navOverlay"></div>
 
 <div class="ctrl-panel">
   <div class="cursor-dropdown" id="cursorDropdown">
@@ -4862,6 +4953,25 @@ function collapseAll() {
       document.documentElement.setAttribute('data-theme', 'dark');
       localStorage.setItem('zephyr-learn-theme', 'dark');
     }
+  });
+})();
+
+// ── 移动端汉堡菜单 ──
+(function mobileNav() {
+  const btn = document.getElementById('hamburgerBtn');
+  const nav = document.querySelector('nav');
+  const overlay = document.getElementById('navOverlay');
+
+  function open()  { nav.classList.add('open'); overlay.classList.add('show'); btn.innerHTML = '&#10005;'; }
+  function close() { nav.classList.remove('open'); overlay.classList.remove('show'); btn.innerHTML = '&#9776;'; }
+
+  btn.addEventListener('click', () => {
+    nav.classList.contains('open') ? close() : open();
+  });
+  overlay.addEventListener('click', close);
+  // 点击侧边栏链接后自动关闭
+  nav.addEventListener('click', (e) => {
+    if (e.target.closest('a')) setTimeout(close, 200);
   });
 })();
 
