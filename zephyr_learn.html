@@ -24,6 +24,7 @@
     --accent-dma: #1d4ed8;
     --accent-thread: #b45309;
     --accent-kernel: #0d9488;
+    --accent-setup: #d97706;
     --code-bg: #f1f5f9;
     --card-hover-bg: #fafbfc;
     --h2-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -114,6 +115,7 @@
   .topic-dma         h2:hover { border-color: var(--accent-dma);    box-shadow: 0 12px 32px rgba(29,78,216,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   .topic-thread      h2:hover { border-color: var(--accent-thread); box-shadow: 0 12px 32px rgba(180,83,9,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
   .topic-kernel      h2:hover { border-color: var(--accent-kernel); box-shadow: 0 12px 32px rgba(13,148,136,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); }
+  .topic-setup       h2:hover { border-color: var(--accent-setup);  box-shadow: 0 12px 32px rgba(217,119,6,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
   .topic-fundamentals h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   .topic-other       h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   main h2:hover {
@@ -142,6 +144,7 @@
   .topic-dma   .icon, .icon-dma   { background: var(--accent-dma); }
   .topic-thread .icon, .icon-thread { background: var(--accent-thread); }
   .topic-kernel .icon, .icon-kernel { background: var(--accent-kernel); }
+  .topic-setup  .icon, .icon-setup  { background: var(--accent-setup); }
   .topic-fundamentals .icon, .icon-fundamentals { background: var(--primary); }
 
   .topic-section { margin-bottom: 36px; transition: margin-bottom 0.35s ease; }
@@ -192,6 +195,7 @@
   .topic-dma         .qa-card:hover { box-shadow: 0 14px 36px rgba(29,78,216,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-dma); }
   .topic-thread      .qa-card:hover { box-shadow: 0 14px 36px rgba(180,83,9,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-thread); }
   .topic-kernel      .qa-card:hover { box-shadow: 0 14px 36px rgba(13,148,136,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-kernel); }
+  .topic-setup       .qa-card:hover { box-shadow: 0 14px 36px rgba(217,119,6,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-setup); }
   .topic-fundamentals .qa-card:hover { box-shadow: 0 14px 36px rgba(37,99,235,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary); }
 
   /* 用父级 topic 给同 section 内的卡片着色 — 边条 + 标记 + 箭头 */
@@ -217,6 +221,8 @@
   .topic-thread      .qa-card .q .marker { background: var(--accent-thread); }
   .topic-kernel      .qa-card::before { background: var(--accent-kernel); }
   .topic-kernel      .qa-card .q .marker { background: var(--accent-kernel); }
+  .topic-setup       .qa-card::before { background: var(--accent-setup); }
+  .topic-setup       .qa-card .q .marker { background: var(--accent-setup); }
   .topic-fundamentals .qa-card::before { background: var(--primary); }
   .topic-fundamentals .qa-card .q .marker { background: var(--primary); }
 
@@ -232,6 +238,7 @@
   .topic-dma         .qa-card.open .q .arrow { background: #dbeafe; color: var(--accent-dma); }
   .topic-thread      .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-thread); }
   .topic-kernel      .qa-card.open .q .arrow { background: #ccfbf1; color: var(--accent-kernel); }
+  .topic-setup       .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-setup); }
   .topic-fundamentals .qa-card.open .q .arrow { background: #dbeafe; color: var(--primary); }
 
   .qa-card .q {
@@ -909,6 +916,7 @@
     <button class="btn" onclick="filterBy('uart')" data-filter="uart">UART</button>
     <button class="btn" onclick="filterBy('timer')" data-filter="timer">Timer</button>
     <button class="btn" onclick="filterBy('dma')" data-filter="dma">DMA</button>
+    <button class="btn" onclick="filterBy('setup')" data-filter="setup">环境</button>
     <button class="btn" onclick="filterBy('fundamentals')" data-filter="fundamentals">基础</button>
     <button class="btn" onclick="filterBy('thread')" data-filter="thread">线程</button>
     <button class="btn" onclick="filterBy('kernel')" data-filter="kernel">同步</button>
@@ -916,6 +924,140 @@
 
   <div class="stats-bar" id="statsBar"></div>
   <div class="no-result" id="noResult">没有匹配的问答，试试其他关键词。</div>
+
+  <!-- ═══════════ Zephyr环境搭建 ═══════════ -->
+  <section class="topic-section topic-setup" data-topic="setup" id="sec-setup">
+    <h2><span class="icon icon-setup">E</span> Zephyr 环境搭建</h2>
+    <div class="qa-list">
+
+      <!-- SETUP-1: Zephyr与SDK的关系 -->
+      <div class="qa-card" data-topics="setup build environment" id="qa-setup-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 源码和 SDK 是什么关系？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>一句话：Zephyr 是源码（写什么），SDK 是编译工具（怎么编）。两个独立安装。</strong></p>
+
+          <table class="props">
+            <thead><tr><th></th><th>Zephyr 源码</th><th>Zephyr SDK</th></tr></thead>
+            <tbody>
+              <tr><td>是什么</td><td>RTOS 代码库</td><td>交叉编译工具链</td></tr>
+              <tr><td>包含</td><td><code>drivers/ kernel/ include/ boards/ samples/</code></td><td><code>arm-zephyr-eabi-gcc</code>、openocd、qemu、picolibc</td></tr>
+              <tr><td>你在代码里调谁</td><td><code>#include &lt;zephyr/drivers/pwm.h&gt;</code></td><td>不直接调，CMake 自动用</td></tr>
+              <tr><td>升级方式</td><td><code>west update</code></td><td>下载新 <code>.tar.xz</code> 解压</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>编译时如何协作：</strong></p>
+          <pre><code>west build -b myboard .
+        ↓
+CMakeLists.txt: find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
+        ↓                               ↓
+  加载 Zephyr 源码                   调用 SDK 工具链
+  (drivers/pwm.h 等)                (arm-zephyr-eabi-gcc)
+        ↓                               ↓
+              最终 .elf / .bin 固件</code></pre>
+          <p>依赖两个环境变量关联：<code>ZEPHYR_BASE</code>（源码路径）和 <code>ZEPHYR_SDK_INSTALL_DIR</code>（SDK 路径）。</p>
+
+          <p><strong>什么情况下你会感知到 SDK：</strong></p>
+          <table class="props">
+            <thead><tr><th>场景</th><th>用到的 SDK 组件</th><th>什么时候感知到</th></tr></thead>
+            <tbody>
+              <tr><td>编译</td><td><code>arm-zephyr-eabi-gcc</code></td><td>编译报错时</td></tr>
+              <tr><td>烧录</td><td>openocd / pyocd / jlink</td><td><code>west flash</code> 失败时</td></tr>
+              <tr><td>调试</td><td><code>arm-zephyr-eabi-gdb</code></td><td><code>west debug</code> 时</td></tr>
+              <tr><td>C 标准库</td><td>picolibc / newlib</td><td>之前 picolibc 编译报错那次</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">Zephyr</span><span class="tag">SDK</span><span class="tag">环境</span></div>
+        </div>
+      </div>
+
+      <!-- SETUP-2: 如何下载 -->
+      <div class="qa-card" data-topics="setup build environment" id="qa-setup-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">如何下载 Zephyr 源码和 SDK？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>下载 Zephyr 源码：</strong></p>
+          <pre><code>pip install west                        # 先装 west
+
+# 默认：下载最新开发版（main 分支）
+west init ~/zephyrproject
+
+# 推荐：指定 LTS 版本（如 v3.7.2）
+west init --mr v3.7.2 ~/zephyrproject
+#         └─ manifest revision：tag / 分支 / commit hash
+
+cd ~/zephyrproject
+west update                              # 下载源码+模块
+west export                              # 导出环境变量
+
+# 目录结构
+~/zephyrproject/
+├── zephyr/          ← 内核 + 驱动 + samples
+├── modules/         ← HAL 层（ST/ESP/NXP 厂商代码）
+└── bootloader/      ← MCUboot</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><code>--mr</code> 可以接任何 Git 引用：tag（<code>v3.7.2</code>）、分支（<code>v3.7-branch</code>）、commit hash。之后 <code>west update</code> 会把 modules 也拉到对应兼容版本。</span>
+          </div>
+
+          <p><strong>下载 SDK：</strong></p>
+          <pre><code># 方法一：west 自动下载（推荐）
+west sdk install
+
+# 方法二：手动下载预编译包
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.17.4/zephyr-sdk-0.17.4_macos-x86_64.tar.xz
+tar -xf zephyr-sdk-0.17.4_macos-x86_64.tar.xz -C ~/
+cd ~/zephyr-sdk-0.17.4 && ./setup.sh</code></pre>
+
+          <div class="tags"><span class="tag">下载</span><span class="tag">west init</span><span class="tag">LTS</span><span class="tag">SDK安装</span></div>
+        </div>
+      </div>
+
+      <!-- SETUP-3: 版本兼容性 -->
+      <div class="qa-card" data-topics="setup build environment" id="qa-setup-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 版本和 SDK 版本兼容性怎么确定？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Zephyr 仓库里有一份清单</strong>，精确声明了需要哪个 SDK：</p>
+          <pre><code># 看 Zephyr 源码里声明的 SDK 要求
+cat ~/zephyrproject/zephyr/sdk_version
+# → 0.16.4（示例：该 Zephyr 版本要求 SDK ≥ 0.16.4）
+
+# 也可查 CMake 中的最低版本
+grep "SDK_VERSION" zephyr/cmake/modules/FindZephyrSDK.cmake</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">版本规则</div>
+            <ul>
+              <li>SDK 可以比 Zephyr 声明的版本<strong>更新</strong>，不能更旧</li>
+              <li>大版本通常向下兼容（SDK 0.17 支持 Zephyr 3.x 全系列）</li>
+              <li>部分 SDK 组件（如 picolibc）有小版本差异 → 用 <code>CONFIG_MINIMAL_LIBC=y</code> 绕开</li>
+            </ul>
+          </div>
+
+          <div class="callout tip">
+            <span class="callout-icon">&#128161;</span>
+            <span>用 <code>west sdk install</code> 自动匹配版本，它知道该下哪个。手动下载时去 <a href="https://github.com/zephyrproject-rtos/sdk-ng/releases">GitHub Releases</a> 看对应版本号。</span>
+          </div>
+
+          <div class="tags"><span class="tag">SDK</span><span class="tag">版本兼容</span><span class="tag">sdk_version</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- ═══════════ 基础概念 ═══════════ -->
   <section class="topic-section topic-fundamentals" data-topic="fundamentals" id="sec-fundamentals">
@@ -4483,89 +4625,6 @@ CONFIG_MINIMAL_LIBC=y     # 强制启用 minimal libc</code></pre>
           </div>
 
           <div class="tags"><span class="tag">picolibc</span><span class="tag">minimal-libc</span><span class="tag">编译错误</span><span class="tag">SDK兼容</span></div>
-        </div>
-      </div>
-      <!-- OTHER-4: Zephyr与SDK的关系 -->
-      <div class="qa-card" data-topics="other build environment" id="qa-other-4">
-        <div class="q" onclick="this.parentElement.classList.toggle('open')">
-          <span class="marker">Q</span>
-          <span class="text">Zephyr 源码和 SDK 是什么关系？如何下载？版本兼容性怎么确定？</span>
-          <span class="arrow">▶</span>
-        </div>
-        <div class="a">
-          <p><strong>一句话：Zephyr 是源码（写什么），SDK 是编译工具（怎么编）。两个独立安装。</strong></p>
-
-          <table class="props">
-            <thead><tr><th></th><th>Zephyr 源码</th><th>Zephyr SDK</th></tr></thead>
-            <tbody>
-              <tr><td>是什么</td><td>RTOS 代码库</td><td>交叉编译工具链</td></tr>
-              <tr><td>包含</td><td><code>drivers/ kernel/ include/ boards/ samples/</code></td><td><code>arm-zephyr-eabi-gcc</code>、openocd、qemu、picolibc</td></tr>
-              <tr><td>你在代码里调谁</td><td><code>#include &lt;zephyr/drivers/pwm.h&gt;</code></td><td>不直接调，CMake 自动用</td></tr>
-              <tr><td>升级方式</td><td><code>west update</code></td><td>下载新 <code>.tar.xz</code> 解压</td></tr>
-            </tbody>
-          </table>
-
-          <p><strong>编译时如何协作：</strong></p>
-          <pre><code>你写 west build -b myboard .
-        ↓
-CMakeLists.txt: find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
-        ↓                               ↓
-  加载 Zephyr 源码                   调用 SDK 工具链
-  (drivers/pwm.h 等)                (arm-zephyr-eabi-gcc)
-        ↓                               ↓
-              最终 .elf / .bin 固件</code></pre>
-          <p>依赖两个环境变量关联：<code>ZEPHYR_BASE</code>（源码路径）和 <code>ZEPHYR_SDK_INSTALL_DIR</code>（SDK 路径）。</p>
-
-          <p><strong>下载 Zephyr 源码：</strong></p>
-          <pre><code>pip install west                        # 先装 west
-
-# 默认：下载最新开发版（main 分支）
-west init ~/zephyrproject
-
-# 推荐：指定 LTS 版本（如 v3.7.2）
-west init --mr v3.7.2 ~/zephyrproject
-#         └─ manifest revision：tag / 分支 / commit hash
-
-cd ~/zephyrproject
-west update                              # 下载源码+模块
-west export                              # 导出环境变量
-
-# 目录结构
-~/zephyrproject/
-├── zephyr/          ← 内核 + 驱动 + samples
-├── modules/         ← HAL 层（ST/ESP/NXP 厂商代码）
-└── bootloader/      ← MCUboot</code></pre>
-
-          <p><strong>下载 SDK：</strong></p>
-          <pre><code># 方法一：west 自动下载（推荐）
-west sdk install
-
-# 方法二：手动下载预编译包
-wget https://github.com/zephyrproject-rtos/sdk-ng/releases/\
-download/v0.17.4/zephyr-sdk-0.17.4_macos-x86_64.tar.xz
-tar -xf zephyr-sdk-0.17.4_macos-x86_64.tar.xz -C ~/
-cd ~/zephyr-sdk-0.17.4 && ./setup.sh</code></pre>
-
-          <p><strong>版本兼容性怎么确定：</strong></p>
-          <pre><code># 看 Zephyr 源码里声明的 SDK 要求
-cat ~/zephyrproject/zephyr/sdk_version
-# → 0.16.4（示例：该 Zephyr 版本要求 SDK &ge; 0.16.4）</code></pre>
-
-          <div class="rule-box">
-            <div class="rule-title">版本规则</div>
-            <ul>
-              <li>SDK 可以比 Zephyr 声明的版本<strong>更新</strong>，不能更旧</li>
-              <li>大版本通常向下兼容（SDK 0.17 支持 Zephyr 3.x 全系列）</li>
-              <li>部分 SDK 组件（如 picolibc）有小版本差异 → 用 <code>CONFIG_MINIMAL_LIBC=y</code> 绕开</li>
-            </ul>
-          </div>
-
-          <div class="callout note">
-            <span class="callout-icon">&#8505;&#65039;</span>
-            <span><strong>实践建议：</strong>用 <code>west sdk install</code> 自动匹配版本，它知道该下哪个。手动下载时去 <a href="https://github.com/zephyrproject-rtos/sdk-ng/releases">GitHub Releases</a> 看 <code>sdk_version</code> 文件对应的版本号。</span>
-          </div>
-
-          <div class="tags"><span class="tag">SDK</span><span class="tag">Zephyr源码</span><span class="tag">环境搭建</span><span class="tag">版本兼容</span></div>
         </div>
       </div>
       <!-- OTHER-5: modules目录 -->
