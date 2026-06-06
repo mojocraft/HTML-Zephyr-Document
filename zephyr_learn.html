@@ -3860,6 +3860,62 @@ k_work_schedule(&amp;my_work, K_MSEC(100));  /* 100ms 后执行 */</code></pre>
         </div>
       </div>
 
+      <!-- OTHER-3: picolibc 与 minimal libc -->
+      <div class="qa-card" data-topics="other build kconfig" id="qa-other-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">为什么 STM32 工程需要 CONFIG_PICOLIBC=n 和 CONFIG_MINIMAL_LIBC=y 才能编译？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>根源：Zephyr 的 C 库选择机制 + SDK 版本兼容性。</strong></p>
+
+          <p><strong>Zephyr 支持三套 C 标准库：</strong></p>
+          <table class="props">
+            <thead><tr><th>库</th><th>来源</th><th>体积</th><th>功能</th></tr></thead>
+            <tbody>
+              <tr><td><code>MINIMAL_LIBC</code></td><td>Zephyr 自带</td><td>最小</td><td>嵌入式常用子集（printf/sscanf 精简版）</td></tr>
+              <tr><td><code>PICOLIBC</code></td><td>SDK 工具链提供</td><td>中等</td><td>接近完整 C 标准库（完整 printf、math 等）</td></tr>
+              <tr><td><code>NEWLIB_LIBC</code></td><td>SDK 工具链提供</td><td>最大</td><td>完整 C 标准库 + C++ 支持</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>ARM 平台默认选 picolibc 的原因：</strong></p>
+          <pre><code># zephyr/lib/libc/Kconfig 第 62-65 行 — 默认选择链
+default EXTERNAL_LIBC if NATIVE_BUILD       # native 模拟器
+default PICOLIBC                             # ← ARM 落到这里
+default NEWLIB_LIBC if REQUIRES_FULL_LIBC    # C++ 项目才走
+default MINIMAL_LIBC                         # 备选</code></pre>
+          <p>ARM 工具链自带 picolibc，所以 <code>PICOLIBC_SUPPORTED</code> 为真，picolibc 在默认链中排在 minimal libc 前面，<strong>自动被选中</strong>。</p>
+
+          <p><strong>那为什么 picolibc 编译不过？</strong></p>
+          <p>Zephyr 源码中的 <code>lib/libc/picolibc/libc-hooks.c</code> 需要对 picolibc 的内部锁类型打桩（让 <code>printf/scanf</code> 等函数线程安全）。但 <strong>Zephyr SDK 0.17.4 自带的 picolibc 版本</strong>，其 <code>sys/lock.h</code> 中 <code>_LOCK_T</code> 的类型定义和 Zephyr hooks 的预期不匹配：</p>
+          <pre><code># picolibc 头文件期望:
+void __retarget_lock_init(struct __lock **lock);
+
+# Zephyr hooks 实现的是:
+void __retarget_lock_init(void **lock);
+
+# → 类型不匹配，编译报错: conflicting types</code></pre>
+
+          <p><strong>最终效果：SDK 版本和 Zephyr 版本存在 picolibc 兼容问题时，ARM 工程默认无法通过编译。</strong></p>
+
+          <p><strong>解决方案：强制切到 minimal libc</strong></p>
+          <pre><code># prj.conf
+CONFIG_PICOLIBC=n        # 显式关掉 picolibc（覆盖默认选择）
+CONFIG_MINIMAL_LIBC=y     # 强制启用 minimal libc</code></pre>
+
+          <p>minimal libc 是 Zephyr 源码树自带的，<strong>不依赖外部 SDK 版本</strong>，永远是兼容的。对绝大多数嵌入式工程来说功能完全够用。</p>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>什么时候不能换 minimal libc？</strong>需要 <code>%f</code> 打印浮点数、<code>%lld</code> 64位整数、完整的 <code>math.h</code> 三角函数等 picolibc 才有的功能时。这些功能 minimal libc 不支持或支持不完整。</span>
+          </div>
+
+          <div class="tags"><span class="tag">picolibc</span><span class="tag">minimal-libc</span><span class="tag">编译错误</span><span class="tag">SDK兼容</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
