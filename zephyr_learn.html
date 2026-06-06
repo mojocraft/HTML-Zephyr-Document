@@ -793,6 +793,25 @@
   [data-theme="dark"] .dt-yaml-col { border-color: #334155; background: var(--surface); }
   [data-theme="dark"] .dt-yaml-header { border-color: #334155; }
 
+  /* ── 核心金句 ── */
+  .core-insight {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b; border-radius: var(--radius);
+    padding: 14px 20px; margin: 14px 0; text-align: center;
+    font-size: 0.95rem; font-weight: 700;
+  }
+  .core-insight code {
+    background: #fef9c3; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.88rem; color: #92400e; font-weight: 800;
+  }
+  [data-theme="dark"] .core-insight {
+    background: linear-gradient(135deg, #2a1a08 0%, #3a2810 100%);
+    border-color: #f59e0b; color: #fde68a;
+  }
+  [data-theme="dark"] .core-insight code {
+    background: #3a2810; color: #fbbf24;
+  }
+
   /* ── 规则框 ── */
   .rule-box {
     border: 2px solid var(--primary); border-radius: var(--radius);
@@ -1791,7 +1810,11 @@ gpio_pin_set_dt(&amp;relay, 0);  /* 断开 */</code></pre>
             </ul>
           </div>
 
-          <p>这方法对任何外设都管用：<code>ls zephyr/drivers/&lt;外设名&gt;/Kconfig.*</code>，看到什么就写什么。</p>
+          <div class="core-insight">
+            &#128161; 这方法对任何外设都管用：<br>
+            <code>ls zephyr/drivers/&lt;外设名&gt;/Kconfig.*</code><br>
+            看到什么就写什么。
+          </div>
 
           <div class="tags"><span class="tag">Kconfig</span><span class="tag">命名</span><span class="tag">PWM</span><span class="tag">ESP32</span><span class="tag">LEDC</span></div>
         </div>
