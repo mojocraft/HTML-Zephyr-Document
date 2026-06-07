@@ -2169,6 +2169,67 @@ ls zephyr/tests/drivers/pwm/
           <div class="tags"><span class="tag">API</span><span class="tag">Kconfig</span><span class="tag">驱动</span><span class="tag">头文件</span><span class="tag">samples</span></div>
         </div>
       </div>
+      <!-- Zephyr驱动架构：API调用链路 -->
+      <div class="qa-card" data-topics="fundamentals arch driver" id="qa-fund-arch">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 的驱动架构是怎样的？从用户调用 gpio_pin_set_dt() 到硬件寄存器发生了什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>一句话：Kconfig 决定编不编译，设备树决定用不用，函数指针表做分发的枢纽。</strong></p>
+
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">1</span><div class="layer-label">设备树：声明硬件存在</div><div class="layer-desc">你在 dts/overlay 中写 <code>&amp;gpioa { status = "okay"; }</code> → 设备树中出现 <code>compatible = "st,stm32-gpio"</code></div></div>
+            <div class="layer layer-mid"><span class="layer-num">2</span><div class="layer-label">Kconfig：控制编译</div><div class="layer-desc"><code>CONFIG_GPIO=y</code> → SOC_FAMILY_STM32 自动 select <code>CONFIG_GPIO_STM32=y</code> → CMake 把 <code>gpio_stm32.c</code> 编进固件</div></div>
+            <div class="layer layer-mid"><span class="layer-num">3</span><div class="layer-label">驱动注册：compatible 匹配</div><div class="layer-desc"><code>DEVICE_DT_INST_DEFINE(...)</code> 宏向内核注册设备，把自己的函数指针填进 <code>gpio_driver_api</code> 结构体</div></div>
+            <div class="layer layer-bot"><span class="layer-num">4</span><div class="layer-label">API 分发</div><div class="layer-desc"><code>gpio_pin_configure_dt()</code> → 内联函数取 spec.port → 通过 api 函数指针表 → 跳到 <code>gpio_stm32_configure()</code> → 写 MODER 寄存器</div></div>
+          </div>
+
+          <p><strong>完整链路：</strong></p>
+          <pre><code>你的 main.c
+    │  #include &lt;zephyr/drivers/gpio.h&gt;    ← 唯一需要包含的头文件
+    │  gpio_pin_configure_dt(&amp;spec, flags)
+    │
+    ├─ gpio.h 内联函数
+    │    │  spec.port → 设备指针
+    │    │  api-&gt;pin_configure() → 函数指针表分发
+    │
+    ├─ gpio_stm32.c                        ← Kconfig 决定编译了这个文件
+    │    │  gpio_stm32_configure()
+    │    │  写 STM32 MODER / OTYPER / PUPDR 寄存器
+    │
+    └─ STM32 硬件 GPIO 引脚输出电平</code></pre>
+
+          <p><strong>三者的分工：</strong></p>
+          <table class="props">
+            <thead><tr><th>机制</th><th>管什么</th><th>类比</th></tr></thead>
+            <tbody>
+              <tr><td>设备树</td><td>声明硬件存在、决定用哪个驱动</td><td>"这板子上有个 GPIOA"</td></tr>
+              <tr><td>Kconfig</td><td>控制 .c 文件编不编译</td><td>"把 STM32 GPIO 驱动代码放进去"</td></tr>
+              <tr><td>函数指针表</td><td>把 API 调用分发给具体驱动</td><td>"帮我转接 GPIO 部门"</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>公开 API 在哪里？驱动实现在哪里？</strong></p>
+          <table class="props">
+            <thead><tr><th>文件</th><th>性质</th><th>给谁用</th></tr></thead>
+            <tbody>
+              <tr><td><code>zephyr/include/zephyr/drivers/gpio.h</code></td><td>公开 API 头文件</td><td>你的应用程序</td></tr>
+              <tr><td><code>zephyr/drivers/gpio/gpio_stm32.c</code></td><td>STM32 驱动实现</td><td>被框架调用，不直接面向用户</td></tr>
+              <tr><td><code>zephyr/drivers/gpio/gpio_stm32.h</code></td><td>驱动内部头文件</td><td>只有 <code>gpio_stm32.c</code> 自己包含</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>驱动 .c 文件的选择不是猜出来的</strong> — 每个驱动通过 <code>DEVICE_DT_INST_DEFINE()</code> 声明自己管哪个 <code>compatible</code>。系统遍历设备树节点，匹配到 <code>st,stm32-gpio</code> 就调 <code>gpio_stm32.c</code> 的初始化。</span>
+          </div>
+
+          <div class="tags"><span class="tag">架构</span><span class="tag">驱动模型</span><span class="tag">Kconfig</span><span class="tag">设备树</span><span class="tag">API</span></div>
+        </div>
+      </div>
+
 
       <!-- Q13: 中断使用全解 -->
       <div class="qa-card" data-topics="fundamentals interrupt" id="qa-fund-13">
