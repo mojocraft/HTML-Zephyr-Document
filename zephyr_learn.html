@@ -2229,6 +2229,105 @@ ls zephyr/tests/drivers/pwm/
           <div class="tags"><span class="tag">架构</span><span class="tag">驱动模型</span><span class="tag">Kconfig</span><span class="tag">设备树</span><span class="tag">API</span></div>
         </div>
       </div>
+      <!-- 驱动架构实战追踪 -->
+      <div class="qa-card" data-topics="fundamentals arch gpio" id="qa-fund-arch-trace">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">Zephyr 是怎样从硬件抽象到用户 API 的？能拿 GPIO 举一个具体追踪的例子吗？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p>追踪 <code>gpio_pin_set_dt(&amp;led, 1)</code> 在 STM32 上的完整执行路径：</p>
+
+          <div class="layer-stack">
+            <div class="layer layer-top"><span class="layer-num">①</span><div class="layer-label">设备树 → 实例化（编译时）</div><div class="layer-desc"><code>GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios)</code> → 提取 &amp;gpioa + pin=5 + flags，填进 <code>struct gpio_dt_spec</code></div></div>
+            <div class="layer layer-mid"><span class="layer-num">②</span><div class="layer-label">驱动注册 → 填函数表（启动时）</div><div class="layer-desc"><code>DEVICE_DT_INST_DEFINE()</code> 匹配 compatible → 调 <code>gpio_stm32_init()</code> → 把 <code>gpio_stm32_driver</code> 结构体注册到内核</div></div>
+            <div class="layer layer-mid"><span class="layer-num">③</span><div class="layer-label">用户调用 → 内联展开（运行时第1跳）</div><div class="layer-desc"><code>gpio_pin_set_dt(&amp;led, 1)</code> → <code>gpio_pin_set(led.port, led.pin, 1)</code></div></div>
+            <div class="layer layer-mid"><span class="layer-num">④</span><div class="layer-label">API → 函数指针表（运行时第2跳）</div><div class="layer-desc"><code>api-&gt;pin_set(dev, pin, value)</code> → 跳到 <code>gpio_stm32_port_set_bits_raw()</code></div></div>
+            <div class="layer layer-bot"><span class="layer-num">⑤</span><div class="layer-label">写寄存器 → 硬件（运行时第3跳）</div><div class="layer-desc"><code>GPIOA-&gt;BSRR = 1 &lt;&lt; 5</code> → PA5 输出高电平</div></div>
+          </div>
+
+          <p><strong>第 ① 步 — 设备树到 C 结构体（编译时）：</strong></p>
+          <pre><code>/* 你在设备树里写的 */
+led0: led_0 {
+    gpios = &lt;&amp;gpioa 5 GPIO_ACTIVE_LOW&gt;;
+};
+
+/* GPIO_DT_SPEC_GET 编译后等价于 */
+static const struct gpio_dt_spec led = {
+    .port     = DEVICE_DT_GET(DT_NODELABEL(gpioa)),  /* → 指向 gpioa 设备  */
+    .pin      = 5,                                   /* → PA5              */
+    .dt_flags = GPIO_ACTIVE_LOW,                     /* → 低电平有效        */
+};</code></pre>
+
+          <p><strong>第 ② 步 — 驱动注册函数指针表（系统启动时）：</strong></p>
+          <pre><code>/* gpio_stm32.c 底部 — 驱动的"菜单" */
+static const struct gpio_driver_api gpio_stm32_driver = {
+    .pin_configure          = gpio_stm32_configure,
+    .port_get_raw           = gpio_stm32_port_get_raw,
+    .port_set_masked_raw    = gpio_stm32_port_set_masked_raw,
+    .port_set_bits_raw      = gpio_stm32_port_set_bits_raw,    /* ← set */
+    .port_clear_bits_raw    = gpio_stm32_port_clear_bits_raw,
+    .port_toggle_bits       = gpio_stm32_port_toggle_bits,
+    .pin_interrupt_configure = gpio_stm32_pin_interrupt_configure,
+    .manage_callback        = gpio_stm32_manage_callback,
+};
+
+/* 这个宏在系统启动时调用 gpio_stm32_init()，注册设备 */
+DEVICE_DT_INST_DEFINE(0, gpio_stm32_init, NULL,
+                      &amp;gpio_stm32_data, &amp;gpio_stm32_config,
+                      POST_KERNEL, 80, &amp;gpio_stm32_driver);
+/*                                         ↑ 函数指针表挂到设备上 */</code></pre>
+
+          <p><strong>第 ③ 步 — 用户 API 内联展开：</strong></p>
+          <pre><code>/* gpio.h 中 gpio_pin_set_dt 的实现 */
+static inline int gpio_pin_set_dt(const struct gpio_dt_spec *spec, int value)
+{
+    /* 根据 ACTIVE_LOW 标志自动翻转逻辑电平 */
+    if (value != 0) {
+        if (spec-&gt;dt_flags &amp; GPIO_ACTIVE_LOW) {
+            value = 0;    /* 逻辑1 → 物理低电平 */
+        }
+    }
+    return gpio_pin_set(spec-&gt;port, spec-&gt;pin, value);
+    /*                 ↑ 设备指针    ↑ pin号  ↑ 物理电平值  */
+}</code></pre>
+
+          <p><strong>第 ④ 步 — 函数指针表分发：</strong></p>
+          <pre><code>/* gpio.h 中 gpio_pin_set 的实现 */
+static inline int gpio_pin_set(const struct device *dev,
+                               gpio_pin_t pin, int value)
+{
+    const struct gpio_driver_api *api = dev-&gt;api;
+    return api-&gt;port_set_bits_raw(dev, BIT(pin));
+    /*     ↑ 这里跳到了 gpio_stm32_port_set_bits_raw() */
+}</code></pre>
+
+          <p><strong>第 ⑤ 步 — 写硬件寄存器：</strong></p>
+          <pre><code>/* gpio_stm32.c */
+static int gpio_stm32_port_set_bits_raw(const struct device *dev,
+                                        uint32_t mask)
+{
+    struct gpio_stm32_config *cfg = dev-&gt;config;
+    LL_GPIO_SetOutputPin((GPIO_TypeDef *)cfg-&gt;base, mask);
+    /* ↓ 最终：写 STM32 的 BSRR 寄存器             */
+    /* *(uint32_t *)(GPIOA_BASE + 0x18) = 1 &lt;&lt; 5;  */
+    return 0;
+}</code></pre>
+
+          <div class="rule-box">
+            <div class="rule-title">ABI 稳定性的秘密</div>
+            <ul>
+              <li>用户代码只依赖 <code>gpio.h</code>（公开头文件），不依赖 <code>gpio_stm32.c</code></li>
+              <li>换了芯片平台 → 换一个 <code>.c</code> 文件，填同一张函数指针表</li>
+              <li>用户代码<strong>一行都不用改</strong>——这就是 Zephyr 硬件抽象的核心价值</li>
+            </ul>
+          </div>
+
+          <div class="tags"><span class="tag">架构</span><span class="tag">GPIO</span><span class="tag">函数指针</span><span class="tag">调用链</span><span class="tag">实战追踪</span></div>
+        </div>
+      </div>
+
 
 
       <!-- Q13: 中断使用全解 -->
