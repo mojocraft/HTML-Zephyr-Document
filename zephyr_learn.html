@@ -3896,6 +3896,262 @@ uart_rx_enable(uart, rx_buf, sizeof(rx_buf), 50); /* 50ms 字节间超时 */</co
         </div>
       </div>
 
+      <!-- UART-3: DMA 接收 -->
+      <div class="qa-card" data-topics="uart" id="qa-uart-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">UART 如何使用 DMA 接收数据？如何配置和编程？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>DMA 接收的核心思路：</strong>CPU 不逐个字节处理，DMA 控制器自动把 UART 收到的数据搬到内存，只在传输完成/半完成时产生一次中断，大幅降低 CPU 开销，适合大批量、高速率数据传输。</p>
+
+          <p><strong>设备树配置（STM32 为例）：</strong></p>
+          <pre><code>/* 使能 UART DMA 通道 */
+&amp;usart1 {
+    pinctrl-0 = &lt;&amp;usart1_tx_pa9 &amp;usart1_rx_pa10&gt;;
+    pinctrl-names = "default";
+    current-speed = &lt;115200&gt;;
+    status = "okay";
+    dmas = &lt;&amp;dma1 5 0 DMA_FLAG_FIFO&gt;,   /* RX — DMA1 通道5, 外设到内存 */
+           &lt;&amp;dma1 4 0 DMA_FLAG_FIFO&gt;;   /* TX — DMA1 通道4, 内存到外设 */
+    dma-names = "rx", "tx";
+};
+
+&amp;dma1 {
+    status = "okay";
+};</code></pre>
+
+          <p><strong>Kconfig 配置：</strong></p>
+          <pre><code>CONFIG_UART_ASYNC_API=y       # 异步 API（DMA 依赖此选项）
+CONFIG_DMA=y                  # 使能 DMA 子系统
+CONFIG_UART_STM32_DMA=y       # STM32 UART DMA 支持（平台特定）
+# 对于 ESP32:
+# CONFIG_UART_ESP32_ASYNC=y   # ESP32 异步 UART</code></pre>
+
+          <p><strong>双缓冲 DMA 接收（推荐 — 乒乓缓冲）：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/uart.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+#define BUF_SIZE 256
+static uint8_t rx_buf0[BUF_SIZE];   /* DMA 写 buf0 */
+static uint8_t rx_buf1[BUF_SIZE];   /* DMA 写 buf1 */
+static uint8_t *next_buf = rx_buf1; /* 下一轮用的缓冲 */
+static struct k_fifo rx_fifo;       /* 给应用层消费 */
+
+/* DMA 异步回调 — 在中断上下文执行 */
+static void uart_dma_cb(const struct device *dev,
+                        struct uart_event *evt, void *user_data)
+{
+    switch (evt->type) {
+    case UART_RX_RDY:
+        /* DMA 搬完一批数据，丢到 FIFO 给应用层 */
+        k_fifo_put(&amp;rx_fifo, evt->data.rx.buf);
+        /* 应用层处理后调用 uart_rx_buf_rsp() 归还缓冲 */
+        break;
+
+    case UART_RX_BUF_REQUEST:
+        /* DMA 需要新缓冲：提交预先准备好的 next_buf */
+        uart_rx_buf_rsp(dev, next_buf, BUF_SIZE);
+        /* 翻转：下次用另一个缓冲 */
+        next_buf = (next_buf == rx_buf0) ? rx_buf1 : rx_buf0;
+        break;
+
+    case UART_RX_BUF_RELEASED:
+        /* 缓冲已被 DMA 用完释放，可以复用 */
+        break;
+
+    case UART_RX_STOPPED:
+        /* 接收被中止，重新启动 */
+        uart_rx_enable(dev, rx_buf0, BUF_SIZE, SYS_FOREVER_US);
+        break;
+
+    case UART_RX_DISABLED:
+        break;
+    }
+}
+
+void uart_dma_init(void)
+{
+    const struct device *uart = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    k_fifo_init(&amp;rx_fifo);
+
+    uart_callback_set(uart, uart_dma_cb, NULL);
+    /* 启动 DMA 接收: 填满 buf0 或 SYS_FOREVER_US 超时触发 UART_RX_RDY */
+    uart_rx_enable(uart, rx_buf0, BUF_SIZE, SYS_FOREVER_US);
+}
+
+/* 应用层消费数据 */
+void uart_consumer_thread(void)
+{
+    while (1) {
+        uint8_t *buf = k_fifo_get(&amp;rx_fifo, K_FOREVER);
+        /* 处理 buf 中的 BUF_SIZE 字节数据 */
+        process_data(buf, BUF_SIZE);
+        /* 归还缓冲给 DMA */
+        uart_rx_buf_rsp(DEVICE_DT_GET(DT_CHOSEN(zephyr_console)),
+                        buf, BUF_SIZE);
+    }
+}</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>缓冲管理要点：</strong>DMA 需要物理上连续的缓冲。用 <code>BUF_REQUEST</code> 事件实现乒乓缓冲，用 <code>RX_RDY</code> 消费数据后用 <code>uart_rx_buf_rsp()</code> 归还。如果缓冲区用完了，<code>BUF_REQUEST</code> 没及时响应，DMA 会暂停直到有新缓冲提交。</span>
+          </div>
+
+          <div class="tags"><span class="tag">DMA</span><span class="tag">乒乓缓冲</span><span class="tag">异步API</span><span class="tag">dmas</span></div>
+        </div>
+      </div>
+
+      <!-- UART-4: DMA + 空闲中断 -->
+      <div class="qa-card" data-topics="uart" id="qa-uart-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">DMA + 空闲中断（IDLE）接收不定长数据是怎样实现的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>为什么需要空闲中断？</strong></p>
+          <p>DMA 只知道"搬了多少字节"，不知道"一帧什么时候结束"。空闲中断（IDLE line detection）检测到 UART RX 线上超过一个字节时间没有数据，说明发送方已经发完了一帧，此时即可确定帧边界。两者配合：<strong>DMA 负责高效搬运，空闲中断负责切帧</strong>。</p>
+
+          <p><strong>工作原理图：</strong></p>
+          <pre><code>  发送方:  [BYTE0] [BYTE1] [BYTE2] ... [BYTE_N] ──空闲──&gt;
+   DMA:     ─────────── 持续搬运到内存 ──────────┐
+   UART:                                          └→ 检测到空闲 → 触发 IDLE 中断
+                                                      ↓
+   ISR:                                          读出 DMA 剩余计数
+                                                 已收字节 = 总长度 - 剩余计数
+                                                 通知应用层"一帧收完"</code></pre>
+
+          <p><strong>Zephyr 实现方式：</strong>Zephyr 的异步 UART API 用 <code>uart_rx_enable()</code> 的超时参数（microseconds）封装了空闲检测。当 RX 线上超过 timeout 时间没有收到新字节，驱动触发 <code>UART_RX_RDY</code> 事件，回调中 <code>evt->data.rx.len</code> 就是实际收到的字节数（不定长）。</p>
+
+          <p><strong>完整示例 — DMA + 空闲中断接收不定长帧：</strong></p>
+          <pre><code>#include &lt;zephyr/drivers/uart.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+#define RX_BUF_SIZE 512        /* DMA 缓冲要够大，能装下最大帧 */
+#define IDLE_TIMEOUT_US 5000   /* 5ms 空闲 = 帧结束 */
+
+static uint8_t rx_buf[RX_BUF_SIZE];
+static struct k_fifo frame_fifo;     /* 帧队列 */
+K_THREAD_STACK_DEFINE(parser_stack, 1024);
+static struct k_thread parser_thread;
+
+/* ── 帧结构：记录不定长数据 ── */
+struct uart_frame {
+    uint8_t *data;
+    size_t   len;
+};
+
+/* ── DMA + 空闲中断回调 ── */
+static void uart_idle_dma_cb(const struct device *dev,
+                             struct uart_event *evt, void *user_data)
+{
+    struct uart_frame *frame;
+
+    switch (evt->type) {
+    case UART_RX_RDY:
+        /*
+         * 空闲超时触发！evt->data.rx 包含:
+         *   .buf — 收到的数据指针
+         *   .len — 实际收到的字节数（不定长!）
+         *   .offset — 数据在 buf 中的偏移（通常为 0）
+         */
+        if (evt->data.rx.len == 0) break;
+
+        frame = k_malloc(sizeof(*frame));
+        frame->data = k_malloc(evt->data.rx.len);
+        memcpy(frame->data, evt->data.rx.buf + evt->data.rx.offset,
+               evt->data.rx.len);
+        frame->len = evt->data.rx.len;
+        k_fifo_put(&amp;frame_fifo, frame);
+
+        /*
+         * 归还缓冲并重新启动 DMA + 空闲检测
+         * 注意: len=0 表示不清空缓冲，偏移量移到已收数据之后
+         * 这样下一帧接着写入缓冲剩余空间
+         */
+        uart_rx_buf_rsp(dev, evt->data.rx.buf, evt->data.rx.len);
+        break;
+
+    case UART_RX_BUF_REQUEST:
+        /* 缓冲用完，提交新缓冲 */
+        uart_rx_buf_rsp(dev, rx_buf, RX_BUF_SIZE);
+        break;
+
+    case UART_RX_STOPPED:
+        uart_rx_enable(dev, rx_buf, RX_BUF_SIZE, IDLE_TIMEOUT_US);
+        break;
+
+    case UART_RX_DISABLED:
+        break;
+    }
+}
+
+/* ── 帧解析线程 ── */
+static void frame_parser(void *p1, void *p2, void *p3)
+{
+    while (1) {
+        struct uart_frame *f = k_fifo_get(&amp;frame_fifo, K_FOREVER);
+
+        /* 根据协议解析不定长帧 */
+        if (f->len &gt;= 4 &amp;&amp; f->data[0] == 0xAA) { /* 帧头 0xAA */
+            uint8_t cmd  = f->data[1];
+            uint8_t len  = f->data[2];
+            uint8_t *payload = &amp;f->data[3];
+            handle_command(cmd, payload, len);
+        }
+
+        k_free(f->data);
+        k_free(f);
+    }
+}
+
+void uart_dma_idle_init(void)
+{
+    const struct device *uart = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+
+    k_fifo_init(&amp;frame_fifo);
+
+    k_thread_create(&amp;parser_thread, parser_stack,
+                    K_THREAD_STACK_SIZEOF(parser_stack),
+                    frame_parser, NULL, NULL, NULL,
+                    K_PRIO_COOP(7), 0, K_NO_WAIT);
+
+    uart_callback_set(uart, uart_idle_dma_cb, NULL);
+    /*
+     * 关键: timeout = IDLE_TIMEOUT_US (5000us)
+     * DMA 持续搬运，RX 线上空闲超过 5ms 即触发 UART_RX_RDY
+     * 驱动内部自动处理: DMA 搬运 + 硬件空闲中断 → 合成 UART_RX_RDY
+     */
+    uart_rx_enable(uart, rx_buf, RX_BUF_SIZE, IDLE_TIMEOUT_US);
+}</code></pre>
+
+          <p><strong>帧边界检测的时间线：</strong></p>
+          <pre><code>时间 →
+
+  UART RX:  ████████████████████████████░░░░░░░░░██████░░░░░
+            ←── 第1帧 (N字节) ──→          ←第2帧→
+
+  空闲检测:                   └─5ms空闲→触发!            └→触发!
+  DMA:      ──搬运中──────────┬─停─      ──搬运──┬─停─
+  RX_RDY:                    └→ 上报第1帧       └→ 上报第2帧
+                              (len=N)            (len=6)</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>空闲超时时间怎么选？</strong>取决于波特率和协议：波特率越高字节间隔越短。以 115200 为例，一个字节约 87μs，设 500μs~5ms 的空闲阈值足够区分帧间间隔和帧内间隔。如果设太短，可能在一帧中间误触发；设太长，帧延迟会增加。</span>
+          </div>
+
+          <div class="callout note">
+            <span class="callout-icon">&#9888;&#65039;</span>
+            <span><strong>STM32 注意：</strong>部分 STM32 型号的 UART 驱动对 IDLE 中断的支持依赖 <code>CONFIG_UART_STM32_DMA=y</code> 和 <code>CONFIG_UART_ASYNC_API=y</code>。如果使用中断模式（非 DMA）的空闲检测，需要直接操作 HAL 库的 <code>__HAL_UART_ENABLE_IT(&amp;huart, UART_IT_IDLE)</code>，但这绕过了 Zephyr 抽象层，不推荐。建议统一使用异步 API。</span>
+          </div>
+
+          <div class="tags"><span class="tag">DMA</span><span class="tag">空闲中断</span><span class="tag">IDLE</span><span class="tag">不定长帧</span><span class="tag">乒乓缓冲</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
