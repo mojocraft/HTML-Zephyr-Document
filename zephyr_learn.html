@@ -3929,6 +3929,38 @@ CONFIG_UART_STM32_DMA=y       # STM32 UART DMA 支持（平台特定）
 # 对于 ESP32:
 # CONFIG_UART_ESP32_ASYNC=y   # ESP32 异步 UART</code></pre>
 
+          <p><strong>API 调用流程：</strong></p>
+          <div class="flow-diagram">
+            <span class="flow-step">① <code>DEVICE_DT_GET()</code><br><small>获取设备</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">② <code>uart_callback_set()</code><br><small>注册回调</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">③ <code>uart_rx_enable()</code><br><small>提交初始缓冲<br>启动 DMA</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">④ DMA 搬运中…<br><small>硬件自动搬数据</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑤ <code>UART_RX_RDY</code><br><small>缓冲满→消费</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑥ <code>BUF_REQUEST</code><br><small>→ <code>uart_rx_buf_rsp()</code><br>提交新缓冲（乒乓）</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⟳ 回到④</span>
+          </div>
+
+          <p><strong>各 API 和事件的功能：</strong></p>
+          <table class="props">
+            <thead><tr><th>API / 事件</th><th>作用</th><th>调用时机</th></tr></thead>
+            <tbody>
+              <tr><td><code>uart_callback_set(dev, cb, user_data)</code></td><td>注册异步事件回调，所有 DMA 事件都走这一个回调</td><td>初始化时，<code>uart_rx_enable()</code> 之前</td></tr>
+              <tr><td><code>uart_rx_enable(dev, buf, len, timeout)</code></td><td>提交初始缓冲并启动 DMA 接收；<code>timeout</code> 是字节间超时（μs），<code>SYS_FOREVER_US</code> 表示不超时（缓冲填满才回调）</td><td>初始化时 / <code>RX_STOPPED</code> 后重新启动</td></tr>
+              <tr><td><code>uart_rx_buf_rsp(dev, buf, len)</code></td><td>向 DMA 归还或提交缓冲。<code>len=新缓冲大小时</code> → 提交新缓冲；<code>len=已消费字节数时</code> → 偏移后移、腾出空间</td><td>消费完数据后归还 / <code>BUF_REQUEST</code> 时提交新缓冲</td></tr>
+              <tr><td><code>UART_RX_RDY</code></td><td>缓冲填满或超时到期，数据就绪。通过 <code>evt->data.rx.buf/len/offset</code> 取数据</td><td>回调中处理（case 匹配）</td></tr>
+              <tr><td><code>UART_RX_BUF_REQUEST</code></td><td>DMA 需要新缓冲（当前缓冲用完或未提交），必须调用 <code>uart_rx_buf_rsp()</code> 响应</td><td>回调中处理（case 匹配）</td></tr>
+              <tr><td><code>UART_RX_BUF_RELEASED</code></td><td>缓冲已被 DMA 用完释放，可安全复用</td><td>回调中处理（case 匹配）</td></tr>
+              <tr><td><code>UART_RX_STOPPED</code></td><td>接收被中止（如出错），需调用 <code>uart_rx_enable()</code> 重新启动</td><td>回调中处理（case 匹配）</td></tr>
+              <tr><td><code>UART_RX_DISABLED</code></td><td>UART 被关闭，无需处理</td><td>回调中处理（case 匹配）</td></tr>
+            </tbody>
+          </table>
+
           <p><strong>双缓冲 DMA 接收（推荐 — 乒乓缓冲）：</strong></p>
           <pre><code>#include &lt;zephyr/drivers/uart.h&gt;
 #include &lt;zephyr/kernel.h&gt;
@@ -4024,6 +4056,35 @@ void uart_consumer_thread(void)
                                                  通知应用层"一帧收完"</code></pre>
 
           <p><strong>Zephyr 实现方式：</strong>Zephyr 的异步 UART API 用 <code>uart_rx_enable()</code> 的超时参数（microseconds）封装了空闲检测。当 RX 线上超过 timeout 时间没有收到新字节，驱动触发 <code>UART_RX_RDY</code> 事件，回调中 <code>evt->data.rx.len</code> 就是实际收到的字节数（不定长）。</p>
+
+          <p><strong>API 调用流程（与纯 DMA 的关键区别在于 timeout 和缓冲归还方式）：</strong></p>
+          <div class="flow-diagram">
+            <span class="flow-step">① <code>uart_rx_enable()</code><br><small>timeout=<b>IDLE_TIMEOUT_US</b><br>（非 SYS_FOREVER_US）</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">② DMA 搬运<br><small>持续写缓冲</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">③ 空闲检测<br><small>RX 空闲 &gt; timeout</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">④ <code>UART_RX_RDY</code><br><small><b>len = 实际收到字节数</b><br>（不一定填满缓冲）</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑤ 应用层消费<br><small>按不定长帧处理</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑥ <code>uart_rx_buf_rsp()</code><br><small>归还 <b>len=已消费字节数</b><br>偏移后移，继续收下一帧</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⟳ 回到②</span>
+          </div>
+
+          <p><strong>与纯 DMA 接收（UART-3）的核心区别：</strong></p>
+          <table class="props">
+            <thead><tr><th>对比项</th><th>纯 DMA（UART-3）</th><th>DMA + 空闲中断（UART-4）</th></tr></thead>
+            <tbody>
+              <tr><td><code>uart_rx_enable()</code> timeout</td><td><code>SYS_FOREVER_US</code>（不超时）</td><td>具体值如 <code>5000</code>（5ms）</td></tr>
+              <tr><td><code>UART_RX_RDY</code> 触发条件</td><td>缓冲填满才触发</td><td>缓冲填满 <strong>或</strong> 空闲超时触发</td></tr>
+              <tr><td><code>uart_rx_buf_rsp()</code> 用法</td><td>len=新缓冲大小（乒乓切换）</td><td>len=已消费字节数（偏移后移，复用同一缓冲）</td></tr>
+              <tr><td>缓冲数</td><td>至少 2 个（乒乓）</td><td>1 个大缓冲即可</td></tr>
+              <tr><td>适用场景</td><td>固定长度、高速连续数据</td><td>不定长帧、协议分包（如 Modbus、自定义协议）</td></tr>
+            </tbody>
+          </table>
 
           <p><strong>完整示例 — DMA + 空闲中断接收不定长帧：</strong></p>
           <pre><code>#include &lt;zephyr/drivers/uart.h&gt;
