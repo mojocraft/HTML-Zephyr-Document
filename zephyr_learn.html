@@ -5351,6 +5351,603 @@ CONFIG_LOG=y</code></pre>
         </div>
       </div>
 
+      <!-- WiFi-5: Soft AP 配网 -->
+      <div class="qa-card" data-topics="wifi net" id="qa-wifi-4">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ESP32 如何使用 Soft AP + HTTP 网页配网？（AP 模式 + DHCP Server + 简易 HTTP 配网页）</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>配网流程：</strong></p>
+          <div class="flow-diagram">
+            <span class="flow-step">① 启动 Soft AP<br><small>ESP32 开热点</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">② 启动 DHCP Server<br><small>给连接的手机分配 IP</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">③ 启动 HTTP Server<br><small>监听 80 端口</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">④ 手机连热点<br><small>打开配网页</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑤ 提交 SSID/密码<br><small>HTTP POST</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑥ 保存凭据<br><small>切换到 STA 模式</small></span>
+          </div>
+
+          <p><strong>Kconfig 配置：</strong></p>
+          <pre><code># Soft AP + DHCP Server + HTTP 配网
+CONFIG_WIFI_ESP32=y
+CONFIG_NETWORKING=y
+CONFIG_NET_IPV4=y
+CONFIG_NET_TCP=y
+CONFIG_NET_SOCKETS=y
+CONFIG_NET_DHCPV4_SERVER=y       # DHCP Server → 给连入设备分配 IP
+# Soft AP 支持已是默认 y (ESP32_WIFI_SOFTAP_SUPPORT)</code></pre>
+
+          <p><strong>完整配网代码：</strong></p>
+          <pre><code>#include &lt;zephyr/net/net_if.h&gt;
+#include &lt;zephyr/net/wifi_mgmt.h&gt;
+#include &lt;zephyr/net/net_mgmt.h&gt;
+#include &lt;zephyr/net/socket.h&gt;
+#include &lt;zephyr/net/dhcpv4_server.h&gt;
+#include &lt;zephyr/settings/settings.h&gt;
+
+#define AP_SSID    "ESP32_Config"
+#define AP_CHANNEL 1
+
+/* ── Step 1: 启动 Soft AP ── */
+static int start_softap(void)
+{
+    struct net_if *iface = net_if_get_wifi_sap();
+    if (!iface) return -1;
+
+    static struct in_addr ap_ip = { { { 192, 168, 4, 1 } } };
+    static struct in_addr ap_mask = { { { 255, 255, 255, 0 } } };
+    net_if_ipv4_set_netmask(iface, &amp;ap_mask);
+    net_if_ipv4_addr_add(iface, &amp;ap_ip, NET_ADDR_MANUAL, 0);
+
+    /* DHCP Server — 给连接进来的设备分配 192.168.4.2~ */
+    dhcpv4_server_start(iface, NULL);
+
+    /* 配置 AP 参数 */
+    struct wifi_ap_config ap_cfg = {
+        .ssid        = AP_SSID,
+        .ssid_length = strlen(AP_SSID),
+        .channel     = AP_CHANNEL,
+        .security    = WIFI_SECURITY_TYPE_NONE,  /* 配网模式: 开放 */
+    };
+
+    struct net_mgmt_event_callback cb;
+    net_mgmt_init_event_callback(&amp;cb, NULL, NULL);
+    return net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, iface,
+                    &amp;ap_cfg, sizeof(ap_cfg));
+}
+
+/* ── Step 2-3: 简易 HTTP 配网服务器 ── */
+#define HTTP_PORT 80
+
+/* 配网 HTML 页面 */
+static const char provisioning_html[] =
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/html; charset=utf-8\r\n"
+    "Connection: close\r\n\r\n"
+    "&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;"
+    "&lt;meta charset='utf-8'&gt;"
+    "&lt;meta name='viewport' content='width=device-width,initial-scale=1'&gt;"
+    "&lt;title&gt;WiFi 配网&lt;/title&gt;"
+    "&lt;style&gt;*{margin:0;padding:0;box-sizing:border-box;}"
+    "body{font-family:-apple-system,sans-serif;background:#f0f2f5;"
+    "display:flex;align-items:center;justify-content:center;min-height:100vh;}"
+    ".card{background:#fff;border-radius:12px;padding:24px;width:90vw;max-width:360px;"
+    "box-shadow:0 2px 12px rgba(0,0,0,.08);}"
+    "h2{font-size:18px;margin-bottom:20px;text-align:center;}"
+    "label{font-size:14px;color:#666;display:block;margin:12px 0 4px;}"
+    "input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;}"
+    "button{width:100%;margin-top:20px;padding:12px;background:#0ea5e9;color:#fff;"
+    "border:none;border-radius:8px;font-size:16px;cursor:pointer;}"
+    "&lt;/style&gt;&lt;/head&gt;&lt;body&gt;"
+    "&lt;div class='card'&gt;"
+    "&lt;h2&gt;WiFi 配网&lt;/h2&gt;"
+    "&lt;form action='/connect' method='POST'&gt;"
+    "&lt;label&gt;WiFi SSID&lt;/label&gt;"
+    "&lt;input name='ssid' placeholder='输入 WiFi 名称' required&gt;"
+    "&lt;label&gt;WiFi 密码&lt;/label&gt;"
+    "&lt;input name='pass' type='password' placeholder='输入 WiFi 密码'&gt;"
+    "&lt;button type='submit'&gt;连接&lt;/button&gt;"
+    "&lt;/form&gt;&lt;/div&gt;"
+    "&lt;/body&gt;&lt;/html&gt;";
+
+static int http_send(int fd, const char *data, size_t len)
+{
+    return send(fd, data, len, 0);
+}
+
+/* 解析 POST body 中 key=value&key=value 格式 */
+static void parse_form(const char *body, char *ssid, size_t ssid_sz,
+                       char *pass, size_t pass_sz)
+{
+    const char *p = body;
+    while (*p) {
+        if (!strncmp(p, "ssid=", 5)) {
+            p += 5;
+            const char *e = strchr(p, '&');
+            size_t len = e ? (size_t)(e - p) : strlen(p);
+            /* URL decode — 简化版，只处理 '+' → ' ' */
+            if (len < ssid_sz) {
+                memcpy(ssid, p, len); ssid[len] = 0;
+                for (char *c = ssid; *c; c++) if (*c == '+') *c = ' ';
+            }
+            if (!e) break; p = e + 1;
+        } else if (!strncmp(p, "pass=", 5)) {
+            p += 5;
+            const char *e = strchr(p, '&');
+            size_t len = e ? (size_t)(e - p) : strlen(p);
+            if (len < pass_sz) {
+                memcpy(pass, p, len); pass[len] = 0;
+                for (char *c = pass; *c; c++) if (*c == '+') *c = ' ';
+            }
+            if (!e) break; p = e + 1;
+        } else {
+            p++;
+        }
+    }
+}
+
+static const char ok_html[] =
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/html; charset=utf-8\r\n"
+    "Connection: close\r\n\r\n"
+    "&lt;html&gt;&lt;body&gt;&lt;h2&gt;已保存，正在连接 WiFi...&lt;/h2&gt;&lt;/body&gt;&lt;/html&gt;";
+
+static const char wifi_saved;   /* 标志位 */
+
+static void handle_client(int fd)
+{
+    char buf[1024];
+    int n = recv(fd, buf, sizeof(buf) - 1, 0);
+    if (n <= 0) { close(fd); return; }
+    buf[n] = 0;
+
+    if (!strncmp(buf, "GET / ", 6) || !strncmp(buf, "GET /?", 6)) {
+        /* 配网页 */
+        http_send(fd, provisioning_html, strlen(provisioning_html));
+    } else if (!strncmp(buf, "POST /connect", 13)) {
+        /* 收到 SSID/密码 */
+        char *body = strstr(buf, "\r\n\r\n");
+        char ssid[64] = {0}, pass[64] = {0};
+        if (body) parse_form(body + 4, ssid, sizeof(ssid), pass, sizeof(pass));
+
+        if (ssid[0]) {
+            /* 保存凭据到 flash */
+            settings_save_one("wifi/ssid", ssid, strlen(ssid) + 1);
+            settings_save_one("wifi/pass", pass, strlen(pass) + 1);
+            http_send(fd, ok_html, strlen(ok_html));
+            *((volatile char *)&amp;wifi_saved) = 1;  /* 通知主线程 */
+        }
+    }
+    close(fd);
+}
+
+/* ── HTTP 服务器主循环 ── */
+static void http_server_thread(void *p1, void *p2, void *p3)
+{
+    int listen_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    int opt = 1;
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &amp;opt, sizeof(opt));
+
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port   = htons(HTTP_PORT),
+        .sin_addr   = { htonl(INADDR_ANY) },
+    };
+    bind(listen_fd, (struct sockaddr *)&amp;addr, sizeof(addr));
+    listen(listen_fd, 3);
+
+    while (1) {
+        int client = accept(listen_fd, NULL, NULL);
+        if (client >= 0) handle_client(client);
+    }
+}
+
+/* ── Step 6: 收到凭据后切换到 STA 模式 ── */
+void switch_to_sta_and_connect(const char *ssid, const char *pass)
+{
+    struct net_if *iface = net_if_get_wifi_sap();
+
+    /* 停止 AP */
+    net_mgmt(NET_REQUEST_WIFI_AP_DISABLE, iface, NULL, 0);
+
+    /* 连接目标 WiFi */
+    struct wifi_connect_req_params params = {
+        .ssid        = ssid,
+        .ssid_length = strlen(ssid),
+        .psk         = pass,
+        .psk_length  = strlen(pass),
+        .security    = pass[0] ? WIFI_SECURITY_TYPE_PSK
+                               : WIFI_SECURITY_TYPE_NONE,
+        .channel     = WIFI_CHANNEL_ANY,
+        .timeout     = 30,
+    };
+    net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &amp;params, sizeof(params));
+}</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>配网流程总结：</strong>① 开机检测是否已保存 WiFi 凭据 → ② 没有则启动 Soft AP + DHCP Server + HTTP Server → ③ 手机连接热点，浏览器打开配网页 → ④ 提交 SSID/密码，通过 HTTP POST 送达设备 → ⑤ <code>settings_save_one()</code> 持久化凭据 → ⑥ 关闭 AP，切换到 STA 模式连接目标 WiFi。</span>
+          </div>
+
+          <div class="tags"><span class="tag">SoftAP</span><span class="tag">配网</span><span class="tag">DHCP Server</span><span class="tag">HTTP Server</span><span class="tag">settings</span></div>
+        </div>
+      </div>
+
+      <!-- WiFi-6: HTTP 客户端 -->
+      <div class="qa-card" data-topics="wifi net" id="qa-wifi-5">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ESP32 WiFi 连接成功后，如何使用 HTTP 客户端发起 GET/POST 请求？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Kconfig 配置：</strong></p>
+          <pre><code>CONFIG_HTTP_CLIENT=y       # Zephyr HTTP 客户端库
+CONFIG_NET_SOCKETS=y       # 依赖 socket API
+CONFIG_DNS_RESOLVER=y      # 域名解析（如果用域名而非 IP）</code></pre>
+
+          <p><strong>Zephyr HTTP 客户端库 API：</strong></p>
+          <table class="props">
+            <thead><tr><th>API</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>http_client_req(sock, &amp;req, &amp;rsp, data, &amp;len, ctx)</code></td><td>发起一次 HTTP 请求（GET/POST/PUT），返回状态码和响应体</td></tr>
+              <tr><td><code>http_client_set_header_field(&amp;header, "key", "val")</code></td><td>设置请求头（可追加多个）</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>HTTP GET 示例：</strong></p>
+          <pre><code>#include &lt;zephyr/net/socket.h&gt;
+#include &lt;zephyr/net/http/client.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+static int http_get(const char *host, uint16_t port,
+                    const char *path, uint8_t *rx_buf, size_t rx_sz)
+{
+    int ret;
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port   = htons(port),
+    };
+    zsock_inet_pton(AF_INET, host, &amp;addr.sin_addr);
+
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) return -1;
+
+    ret = connect(sock, (struct sockaddr *)&amp;addr, sizeof(addr));
+    if (ret < 0) { close(sock); return ret; }
+
+    /* 构建请求 */
+    struct http_client_request req = {0};
+    struct http_client_response rsp = {0};
+    req.method    = HTTP_GET;
+    req.host      = host;
+    req.port      = port;
+    req.url       = path;
+    req.protocol  = "HTTP/1.1";
+    req.response  = &amp;rsp;
+    req.recv_buf  = rx_buf;
+    req.recv_buf_len = rx_sz;
+
+    struct http_client_header headers[3] = {0};
+    req.optional_headers = headers;
+    http_client_set_header_field(&amp;headers[0], "User-Agent", "Zephyr-HTTP/1.0");
+    http_client_set_header_field(&amp;headers[1], "Accept", "application/json");
+    /* headers[2] = NULL 自动终止 */
+
+    ret = http_client_req(sock, &amp;req, NULL, rx_buf, &amp;rx_sz, NULL);
+    close(sock);
+
+    if (ret == 0) {
+        printk("GET %d 响应: %.*s\n", rsp.http_status, (int)rx_sz, rx_buf);
+    }
+    return ret;
+}
+
+void http_example(void)
+{
+    static uint8_t rx_buf[2048];
+    /* GET http://httpbin.org/get */
+    http_get("54.161.241.135", 80, "/get", rx_buf, sizeof(rx_buf));
+}</code></pre>
+
+          <p><strong>HTTP POST 示例（发送 JSON 数据）：</strong></p>
+          <pre><code>static int http_post_json(const char *host, uint16_t port,
+                          const char *path, const char *json_body,
+                          uint8_t *rx_buf, size_t rx_sz)
+{
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET, .sin_port = htons(port),
+    };
+    zsock_inet_pton(AF_INET, host, &amp;addr.sin_addr);
+
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) return -1;
+    if (connect(sock, (struct sockaddr *)&amp;addr, sizeof(addr)) < 0) {
+        close(sock); return -1;
+    }
+
+    struct http_client_request req = {0};
+    struct http_client_response rsp = {0};
+    req.method    = HTTP_POST;
+    req.host      = host;
+    req.port      = port;
+    req.url       = path;
+    req.protocol  = "HTTP/1.1";
+    req.payload   = json_body;
+    req.payload_len = strlen(json_body);
+    req.response  = &amp;rsp;
+    req.recv_buf  = rx_buf;
+    req.recv_buf_len = rx_sz;
+
+    struct http_client_header headers[3] = {0};
+    req.optional_headers = headers;
+    http_client_set_header_field(&amp;headers[0], "Content-Type",
+                                 "application/json");
+    http_client_set_header_field(&amp;headers[1], "User-Agent",
+                                 "Zephyr-HTTP/1.0");
+
+    int ret = http_client_req(sock, &amp;req, NULL, rx_buf, &amp;rx_sz, NULL);
+    close(sock);
+
+    if (ret == 0) {
+        printk("POST 响应 %d: %.*s\n",
+               rsp.http_status, (int)rx_sz, rx_buf);
+    }
+    return ret;
+}
+
+/* 用法: 上报传感器数据 */
+void post_sensor_data(float temp, float humidity)
+{
+    static uint8_t rx_buf[1024];
+    char json[256];
+    snprintf(json, sizeof(json),
+             "{\"temp\":%.1f,\"humidity\":%.1f,\"device\":\"esp32\"}",
+             temp, humidity);
+    http_post_json("192.168.1.100", 8080, "/api/sensors",
+                   json, rx_buf, sizeof(rx_buf));
+}</code></pre>
+
+          <div class="tags"><span class="tag">HTTP Client</span><span class="tag">GET</span><span class="tag">POST</span><span class="tag">JSON</span><span class="tag">REST API</span></div>
+        </div>
+      </div>
+
+      <!-- WiFi-7: MQTT -->
+      <div class="qa-card" data-topics="wifi net" id="qa-wifi-6">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ESP32 WiFi 下如何使用 MQTT 连接物联网平台？（connect/subscribe/publish 完整示例）</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>Kconfig 配置：</strong></p>
+          <pre><code>CONFIG_MQTT_LIB=y              # Zephyr MQTT 客户端库
+CONFIG_NET_TCP=y               # MQTT 基于 TCP
+CONFIG_NET_SOCKETS=y           # 底层 socket API
+CONFIG_DNS_RESOLVER=y          # 解析 MQTT broker 域名
+CONFIG_MQTT_KEEPALIVE=60       # Keepalive 秒数（默认 60）
+# 需要 TLS 加密连接时：
+# CONFIG_MQTT_LIB_TLS=y
+# CONFIG_TLS_CREDENTIAL_FILENAMES=y</code></pre>
+
+          <p><strong>MQTT 核心 API：</strong></p>
+          <table class="props">
+            <thead><tr><th>API</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>mqtt_connect(&amp;client, &amp;broker, &amp;conn_param, 3*MSEC_PER_SEC, &amp;app_evt)</code></td><td>连接 broker，等待 CONNACK</td></tr>
+              <tr><td><code>mqtt_subscribe(&amp;client, &amp;topic, &amp;app_evt)</code></td><td>订阅主题</td></tr>
+              <tr><td><code>mqtt_publish(&amp;client, &amp;topic, &amp;msg, &amp;app_evt)</code></td><td>发布消息到主题</td></tr>
+              <tr><td><code>mqtt_input(&amp;client)</code></td><td>处理收到的 MQTT 数据（在 socket 有数据时调用）</td></tr>
+              <tr><td><code>mqtt_live(&amp;client)</code></td><td>维持 MQTT 心跳（定期调用，发送 PINGREQ）</td></tr>
+              <tr><td><code>mqtt_abort(&amp;client)</code></td><td>异常断开时中止当前操作</td></tr>
+              <tr><td><code>mqtt_disconnect(&amp;client)</code></td><td>正常断开 MQTT 连接</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>完整示例 — 连接、订阅、发布、收发循环：</strong></p>
+          <pre><code>#include &lt;zephyr/net/mqtt.h&gt;
+#include &lt;zephyr/net/socket.h&gt;
+#include &lt;zephyr/kernel.h&gt;
+
+/* ── MQTT 配置 ── */
+#define MQTT_BROKER_IP    "192.168.1.100"
+#define MQTT_BROKER_PORT  1883
+#define MQTT_CLIENT_ID    "esp32_sensor_01"
+#define MQTT_USER         ""
+#define MQTT_PASS         ""
+
+#define TOPIC_SUB  "device/+/cmd"       /* 订阅：接收云端指令 */
+#define TOPIC_PUB  "device/esp32/data"  /* 发布：上报数据 */
+
+/* ── 数据结构 ── */
+static uint8_t rx_buf[1024];
+static uint8_t tx_buf[1024];
+static struct mqtt_client client;
+
+/* 阻塞等待 MQTT 操作结果 */
+static void wait_mqtt_evt(struct mqtt_evt *evt, uint32_t timeout)
+{
+    k_sem_reset(&amp;mqtt_sem);
+    *((struct mqtt_evt **)&amp;evt->param) = NULL;  /* 由回调填充 */
+    k_sem_take(&amp;mqtt_sem, K_MSEC(timeout));
+}
+K_SEM_DEFINE(mqtt_sem, 0, 1);
+
+static struct mqtt_evt last_evt;
+static void mqtt_evt_cb(struct mqtt_client *c,
+                        const struct mqtt_evt *evt)
+{
+    memcpy(&amp;last_evt, evt, sizeof(last_evt));
+    k_sem_give(&amp;mqtt_sem);
+}
+
+/* ── 连接 Broker ── */
+static int mqtt_broker_connect(void)
+{
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port   = htons(MQTT_BROKER_PORT),
+    };
+    zsock_inet_pton(AF_INET, MQTT_BROKER_IP, &amp;addr.sin_addr);
+
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) return -1;
+    if (connect(sock, (struct sockaddr *)&amp;addr, sizeof(addr)) < 0) {
+        close(sock); return -1;
+    }
+
+    mqtt_client_init(&amp;client);
+    client.broker   = &amp;addr;
+    client.evt_cb   = mqtt_evt_cb;
+    client.client_id.utf8   = MQTT_CLIENT_ID;
+    client.client_id.size   = strlen(MQTT_CLIENT_ID);
+    client.user_name.utf8   = MQTT_USER;
+    client.user_name.size   = strlen(MQTT_USER);
+    client.password.utf8    = MQTT_PASS;
+    client.password.size    = strlen(MQTT_PASS);
+    client.protocol_version = MQTT_VERSION_3_1_1;
+    client.transport.type   = MQTT_TRANSPORT_NON_SECURE;
+    client.rx_buf    = rx_buf;
+    client.rx_buf_size = sizeof(rx_buf);
+    client.tx_buf    = tx_buf;
+    client.tx_buf_size = sizeof(tx_buf);
+
+    /* 发起连接 */
+    int ret = mqtt_connect(&amp;client);
+    if (ret) { close(sock); return ret; }
+
+    wait_mqtt_evt(&amp;last_evt, 5000);
+    if (last_evt.type == MQTT_EVT_CONNACK &amp;&amp;
+        last_evt.result == 0) {
+        printk("MQTT 已连接\n");
+        return sock;
+    }
+    close(sock);
+    return -1;
+}
+
+/* ── 订阅主题 ── */
+static int mqtt_sub_topic(const char *topic, uint8_t qos)
+{
+    struct mqtt_topic sub_topics[] = {{
+        .topic = {
+            .utf8 = topic,
+            .size = strlen(topic),
+        },
+        .qos = qos,
+    }};
+    struct mqtt_subscription_list sub_list = {
+        .list      = sub_topics,
+        .list_count = 1,
+        .message_id = 1,
+    };
+    int ret = mqtt_subscribe(&amp;client, &amp;sub_list);
+    if (ret) return ret;
+
+    wait_mqtt_evt(&amp;last_evt, 3000);
+    return last_evt.result;
+}
+
+/* ── 发布消息 ── */
+static int mqtt_pub_msg(const char *topic, const char *payload, uint8_t qos)
+{
+    struct mqtt_publish_param param = {
+        .message = {
+            .topic = {
+                .utf8 = topic,
+                .size = strlen(topic),
+            },
+            .payload.data = (uint8_t *)payload,
+            .payload.len  = strlen(payload),
+        },
+        .message_id = 42,
+        .dup_flag   = 0,
+        .retain_flag = 0,
+    };
+    int ret = mqtt_publish(&amp;client, &amp;param);
+    if (ret) return ret;
+
+    if (qos > 0) wait_mqtt_evt(&amp;last_evt, 1000);  /* 等 PUBACK */
+    return ret;
+}
+
+/* ── MQTT 主循环 ── */
+void mqtt_task(void)
+{
+    int sock = mqtt_broker_connect();
+    if (sock < 0) { printk("MQTT 连接失败\n"); return; }
+
+    mqtt_sub_topic(TOPIC_SUB, MQTT_QOS_1_AT_LEAST_ONCE);
+
+    struct pollfd fds = { .fd = sock, .events = POLLIN };
+    int64_t next_keepalive = k_uptime_get() + 60000;
+
+    while (1) {
+        /* 检查 socket 是否有数据 */
+        int ret = poll(&amp;fds, 1, 1000);  /* 最多等 1 秒 */
+        if (ret > 0 &amp;&amp; (fds.revents &amp; POLLIN)) {
+            ret = mqtt_input(&amp;client);
+            if (ret < 0) break;  /* 连接断开 */
+
+            /* 收到订阅的消息 */
+            if (last_evt.type == MQTT_EVT_PUBLISH) {
+                const struct mqtt_publish_param *pub =
+                    &amp;last_evt.param.publish;
+                printk("收到: %.*s = %.*s\n",
+                       pub->message.topic.size, pub->message.topic.utf8,
+                       pub->message.payload.len, pub->message.payload.data);
+
+                /* 如果是 QoS1，MQTT 库已自动回复 PUBACK */
+            }
+        }
+
+        /* 定期发送心跳 */
+        int64_t now = k_uptime_get();
+        if (now >= next_keepalive) {
+            mqtt_live(&amp;client);
+            next_keepalive = now + 60000;
+        }
+
+        /* 示例：每 5 秒上报一次数据 */
+        static int64_t last_pub;
+        if (now - last_pub >= 5000) {
+            char payload[128];
+            snprintf(payload, sizeof(payload),
+                     "{\"temp\":%.1f,\"humidity\":%.1f}",
+                     25.5, 60.2);
+            mqtt_pub_msg(TOPIC_PUB, payload, MQTT_QOS_1_AT_LEAST_ONCE);
+            last_pub = now;
+        }
+    }
+
+    mqtt_disconnect(&amp;client);
+    close(sock);
+}</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>MQTT 关键概念：</strong>
+              <ul>
+                <li><strong>QoS 0</strong> — 最多发一次（不保证送达），适合高频传感器数据</li>
+                <li><strong>QoS 1</strong> — 至少发一次（可能重复），保证送达，最常用</li>
+                <li><strong>QoS 2</strong> — 精确发一次（性能开销大，嵌入式不常用）</li>
+                <li><code>mqtt_live()</code> 必须在 keepalive 时间内至少调用一次，否则 broker 会主动断开</li>
+                <li><code>mqtt_input()</code> 仅在 socket 可读时调用，不要空轮询</li>
+              </ul>
+            </span>
+          </div>
+
+          <div class="tags"><span class="tag">MQTT</span><span class="tag">publish</span><span class="tag">subscribe</span><span class="tag">QoS</span><span class="tag">物联网</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
