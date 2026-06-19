@@ -25,6 +25,8 @@
     --accent-thread: #b45309;
     --accent-kernel: #0d9488;
     --accent-setup: #d97706;
+    --accent-wifi: #0ea5e9;
+    --accent-net: #6366f1;
     --code-bg: #f1f5f9;
     --card-hover-bg: #fafbfc;
     --h2-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -116,6 +118,8 @@
   .topic-thread      h2:hover { border-color: var(--accent-thread); box-shadow: 0 12px 32px rgba(180,83,9,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
   .topic-kernel      h2:hover { border-color: var(--accent-kernel); box-shadow: 0 12px 32px rgba(13,148,136,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); }
   .topic-setup       h2:hover { border-color: var(--accent-setup);  box-shadow: 0 12px 32px rgba(217,119,6,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+  .topic-wifi        h2:hover { border-color: var(--accent-wifi);   box-shadow: 0 12px 32px rgba(14,165,233,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
+  .topic-net         h2:hover { border-color: var(--accent-net);    box-shadow: 0 12px 32px rgba(99,102,241,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); }
   .topic-fundamentals h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   .topic-other       h2:hover { border-color: var(--primary);       box-shadow: 0 12px 32px rgba(37,99,235,0.2), 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
   main h2:hover {
@@ -145,6 +149,8 @@
   .topic-thread .icon, .icon-thread { background: var(--accent-thread); }
   .topic-kernel .icon, .icon-kernel { background: var(--accent-kernel); }
   .topic-setup  .icon, .icon-setup  { background: var(--accent-setup); }
+  .topic-wifi   .icon, .icon-wifi   { background: var(--accent-wifi); }
+  .topic-net    .icon, .icon-net    { background: var(--accent-net); }
   .topic-fundamentals .icon, .icon-fundamentals { background: var(--primary); }
 
   .topic-section { margin-bottom: 36px; transition: margin-bottom 0.35s ease; }
@@ -196,6 +202,8 @@
   .topic-thread      .qa-card:hover { box-shadow: 0 14px 36px rgba(180,83,9,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-thread); }
   .topic-kernel      .qa-card:hover { box-shadow: 0 14px 36px rgba(13,148,136,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-kernel); }
   .topic-setup       .qa-card:hover { box-shadow: 0 14px 36px rgba(217,119,6,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-setup); }
+  .topic-wifi        .qa-card:hover { box-shadow: 0 14px 36px rgba(14,165,233,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-wifi); }
+  .topic-net         .qa-card:hover { box-shadow: 0 14px 36px rgba(99,102,241,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--accent-net); }
   .topic-fundamentals .qa-card:hover { box-shadow: 0 14px 36px rgba(37,99,235,0.18), 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary); }
 
   /* 用父级 topic 给同 section 内的卡片着色 — 边条 + 标记 + 箭头 */
@@ -223,6 +231,10 @@
   .topic-kernel      .qa-card .q .marker { background: var(--accent-kernel); }
   .topic-setup       .qa-card::before { background: var(--accent-setup); }
   .topic-setup       .qa-card .q .marker { background: var(--accent-setup); }
+  .topic-wifi        .qa-card::before { background: var(--accent-wifi); }
+  .topic-wifi        .qa-card .q .marker { background: var(--accent-wifi); }
+  .topic-net         .qa-card::before { background: var(--accent-net); }
+  .topic-net         .qa-card .q .marker { background: var(--accent-net); }
   .topic-fundamentals .qa-card::before { background: var(--primary); }
   .topic-fundamentals .qa-card .q .marker { background: var(--primary); }
 
@@ -239,6 +251,8 @@
   .topic-thread      .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-thread); }
   .topic-kernel      .qa-card.open .q .arrow { background: #ccfbf1; color: var(--accent-kernel); }
   .topic-setup       .qa-card.open .q .arrow { background: #fef3c7; color: var(--accent-setup); }
+  .topic-wifi        .qa-card.open .q .arrow { background: #e0f2fe; color: var(--accent-wifi); }
+  .topic-net         .qa-card.open .q .arrow { background: #e0e7ff; color: var(--accent-net); }
   .topic-fundamentals .qa-card.open .q .arrow { background: #dbeafe; color: var(--primary); }
 
   .qa-card .q {
@@ -1009,6 +1023,8 @@
     <button class="btn" onclick="filterBy('dma')" data-filter="dma">DMA</button>
     <button class="btn" onclick="filterBy('setup')" data-filter="setup">环境</button>
     <button class="btn" onclick="filterBy('fundamentals')" data-filter="fundamentals">基础</button>
+    <button class="btn" onclick="filterBy('wifi')" data-filter="wifi">WiFi</button>
+    <button class="btn" onclick="filterBy('net')" data-filter="net">网络</button>
     <button class="btn" onclick="filterBy('thread')" data-filter="thread">线程</button>
     <button class="btn" onclick="filterBy('kernel')" data-filter="kernel">同步</button>
   </div>
@@ -5108,6 +5124,230 @@ k_work_submit_to_queue(&amp;my_wq, &amp;my_work);</code></pre>
           </div>
 
           <div class="tags"><span class="tag">k_work</span><span class="tag">工作队列</span><span class="tag">ISR</span><span class="tag">延迟处理</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ WiFi ═══════════ -->
+  <section class="topic-section topic-wifi" data-topic="wifi" id="sec-wifi">
+    <h2><span class="icon icon-wifi">W</span> WiFi 无线</h2>
+    <div class="qa-list">
+
+      <!-- WiFi-1: 顶层开关与自动依赖 -->
+      <div class="qa-card" data-topics="wifi" id="qa-wifi-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ESP32 WiFi 必须开启的顶层开关是什么？它会自动选中哪些依赖功能？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>顶层开关：</strong><code>CONFIG_WIFI_ESP32=y</code></p>
+          <pre><code>menuconfig WIFI_ESP32
+    bool "ESP32 SoC WiFi support"
+    depends on DT_HAS_ESPRESSIF_ESP32_WIFI_ENABLED  /* ① */
+    depends on !SMP                                 /* ② */</code></pre>
+          <p>① 设备树中必须有 espressif,wifi 节点且 status="okay"；② <strong>只能单核模式</strong>，因为 Zephyr 网络栈不支持 SMP。</p>
+
+          <p><strong>开启 WIFI_ESP32 后自动 select 的 7 个功能：</strong></p>
+          <table class="props">
+            <thead><tr><th>自动选中的选项</th><th>类型</th><th>目的</th></tr></thead>
+            <tbody>
+              <tr><td><code>NET_L2_WIFI_MGMT</code></td><td>框架层</td><td>WiFi 链路层管理 — 扫描、连接、断开、状态机、信号强度上报</td></tr>
+              <tr><td><code>WIFI_USE_NATIVE_NETWORKING</code></td><td>架构层</td><td>使用 Zephyr 原生网络栈管理 WiFi（区别于 offload 模式，后者把协议栈交给外部 WiFi 芯片）</td></tr>
+              <tr><td><code>MBEDTLS</code></td><td>安全层</td><td>加密库 — WPA/WPA2/WPA3 的密钥协商、证书验证、加解密都依赖它</td></tr>
+              <tr><td><code>THREAD_CUSTOM_DATA</code></td><td>内核层</td><td>允许线程携带自定义数据指针，WiFi 协议栈内部用它在不同线程间传递会话上下文</td></tr>
+              <tr><td><code>THREAD_STACK_INFO</code></td><td>内核层</td><td>跟踪每个线程的栈使用情况，WiFi 内部工作线程需要此功能来监控栈健康</td></tr>
+              <tr><td><code>DYNAMIC_THREAD</code></td><td>内核层</td><td>允许运行时创建线程 — WiFi 连接/断开时需要动态启停 RX、TX、管理等工作线程</td></tr>
+              <tr><td><code>DYNAMIC_THREAD_ALLOC</code></td><td>内核层</td><td>动态分配线程栈内存，避免为 WiFi 内部线程静态预分配大块 RAM</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>依赖关系图：</strong></p>
+          <pre><code>WIFI_ESP32
+  ├── NET_L2_WIFI_MGMT ── WiFi 管理框架（核心）
+  ├── WIFI_USE_NATIVE_NETWORKING ── 原生网络栈模式
+  ├── MBEDTLS ── 加密（WPA/WPA2/WPA3 都需要）
+  ├── THREAD_CUSTOM_DATA ── 线程上下文传递
+  ├── THREAD_STACK_INFO ── 栈监控
+  ├── DYNAMIC_THREAD ── 动态创建线程
+  └── DYNAMIC_THREAD_ALLOC ── 动态分配线程栈</code></pre>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>硬件限制：</strong>ESP32 是双核 SoC，但 <code>WIFI_ESP32</code> 强制 <code>!SMP</code>。WiFi 协议栈内部有自己的任务调度，与 Zephyr SMP 调度器冲突。使用 WiFi 时必须关闭 <code>CONFIG_SMP=y</code>，只跑单核。</span>
+          </div>
+
+          <div class="tags"><span class="tag">Kconfig</span><span class="tag">WIFI_ESP32</span><span class="tag">MBEDTLS</span><span class="tag">DYNAMIC_THREAD</span></div>
+        </div>
+      </div>
+
+      <!-- WiFi-2: 网络协议栈配置 -->
+      <div class="qa-card" data-topics="net" id="qa-net-1">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">开启 WiFi 后，网络协议栈（TCP/IP/DHCP/Socket）还需要手动配置什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>WIFI_ESP32 只管物理传输层</strong>，往上走的 IP/TCP/UDP/DHCP/DNS/HTTP 等都需要单独开启。最小可用的配置：</p>
+          <pre><code># ── 必须：网络子系统本体 ──
+CONFIG_NETWORKING=y              # 整个 Zephyr 网络子系统
+
+# ── IP 层 ──
+CONFIG_NET_IPV4=y                # IPv4（目前 ESP32 WiFi 主要用 IPv4）
+
+# ── 自动获取 IP ──
+CONFIG_NET_DHCPV4=y              # DHCP 客户端 → 连上 WiFi 后自动拿 IP
+
+# ── 传输层（按需） ──
+CONFIG_NET_TCP=y                 # TCP → HTTP/MQTT/TLS 等依赖 TCP
+CONFIG_NET_UDP=y                 # UDP → DNS/NTP/CoAP 等依赖 UDP
+
+# ── 应用层 API（按需） ──
+CONFIG_NET_SOCKETS=y             # POSIX socket API → socket()/connect()/send()/recv()
+# CONFIG_NET_SOCKETS_OFFLOAD=y   # socket offload（如果用 ESP-IDF 的 socket 实现）
+
+# ── DNS（按需） ──
+CONFIG_DNS_RESOLVER=y            # 域名解析 → 可以通过 "mqtt.example.com" 连接</code></pre>
+
+          <p><strong>各层的作用：</strong></p>
+          <table class="props">
+            <thead><tr><th>选项</th><th>层</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>CONFIG_NETWORKING</code></td><td>总开关</td><td>网络子系统的编译开关，不开则下面的选项都不可见</td></tr>
+              <tr><td><code>CONFIG_NET_IPV4</code></td><td>IP 层</td><td>IPv4 协议栈 — 地址解析、路由、分片重组</td></tr>
+              <tr><td><code>CONFIG_NET_DHCPV4</code></td><td>IP 层</td><td>DHCP 客户端 — 连接 WiFi 后自动从路由器获取 IP、网关、DNS 服务器</td></tr>
+              <tr><td><code>CONFIG_NET_TCP</code></td><td>传输层</td><td>TCP 协议 — 可靠有序字节流，用于 HTTP、MQTT、TLS 等</td></tr>
+              <tr><td><code>CONFIG_NET_UDP</code></td><td>传输层</td><td>UDP 协议 — 无连接数据报，用于 DNS、NTP、CoAP 等</td></tr>
+              <tr><td><code>CONFIG_NET_SOCKETS</code></td><td>应用层</td><td>POSIX socket API — 提供 socket()/bind()/connect()/send()/recv() 等标准接口</td></tr>
+              <tr><td><code>CONFIG_DNS_RESOLVER</code></td><td>应用层</td><td>DNS 客户端 — 域名→IP 解析，配置 DNS 服务器地址后可用</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>快捷方式：</strong>部分 samples 用 <code>CONFIG_NET_DHCPV4=y</code> + <code>CONFIG_NET_SOCKETS=y</code> 就够了，其他协议栈选项由 Kconfig 的 <code>depends on</code> 级联自动开启。如果报错缺少某个选项，根据编译报错补即可。</span>
+          </div>
+
+          <div class="tags"><span class="tag">NETWORKING</span><span class="tag">DHCP</span><span class="tag">TCP/IP</span><span class="tag">Socket</span><span class="tag">DNS</span></div>
+        </div>
+      </div>
+
+      <!-- WiFi-3: 缓冲和性能调优 -->
+      <div class="qa-card" data-topics="wifi" id="qa-wifi-2">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ESP32 WiFi 的缓冲管理和性能调优选项有哪些？分别影响什么？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>接收缓冲（RX buffer）：</strong></p>
+          <table class="props">
+            <thead><tr><th>选项</th><th>默认值</th><th>影响</th></tr></thead>
+            <tbody>
+              <tr><td><code>ESP32_WIFI_STATIC_RX_BUFFER_NUM</code></td><td>10（范围 2~25）</td><td>静态 RX 缓冲数，每个约 1.6KB。WiFi 硬件用它们收 802.11 帧。<strong>开 AMPDU RX 时建议 ≥ RX_BA_WIN</strong></td></tr>
+              <tr><td><code>ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM</code></td><td>32（范围 0~128）</td><td>动态 RX 缓冲数，0=无限（有内存风险）。驱动发完数据到上层后自动释放。<strong>建议至少 ≥ 静态缓冲数</strong></td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>发送缓冲（TX buffer）：</strong></p>
+          <table class="props">
+            <thead><tr><th>选项</th><th>默认值</th><th>影响</th></tr></thead>
+            <tbody>
+              <tr><td><code>ESP32_WIFI_TX_BUFFER</code>（二选一）</td><td>Dynamic</td><td><strong>Static</strong>：初始化时预分配 1.6KB/个，有 PSRAM 时推荐；<strong>Dynamic</strong>：按需分配、用完释放，省 RAM</td></tr>
+              <tr><td><code>ESP32_WIFI_STATIC_TX_BUFFER_NUM</code></td><td>16（范围 1~64）</td><td>仅 Static 模式有效。上层发包快过 WiFi 发送速度时可能耗尽</td></tr>
+              <tr><td><code>ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM</code></td><td>32（范围 1~128）</td><td>仅 Dynamic 模式有效。限制同时排队的动态发送缓冲数</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>AMPDU（帧聚合 — 减少 ACK 开销、提升吞吐量）：</strong></p>
+          <table class="props">
+            <thead><tr><th>选项</th><th>默认值</th><th>影响</th></tr></thead>
+            <tbody>
+              <tr><td><code>ESP32_WIFI_AMPDU_TX_ENABLED</code></td><td>y</td><td>发送端帧聚合 — 一次性发多个帧再等 ACK，适合拥挤无线环境</td></tr>
+              <tr><td><code>ESP32_WIFI_TX_BA_WIN</code></td><td>6（范围 2~32）</td><td>发送 AMDPU Block Ack 窗口。值越大吞吐越高但占内存越多。iperf 压测推荐 9~12</td></tr>
+              <tr><td><code>ESP32_WIFI_AMPDU_RX_ENABLED</code></td><td>y</td><td>接收端帧聚合 — 一次收多个帧再统一 ACK</td></tr>
+              <tr><td><code>ESP32_WIFI_RX_BA_WIN</code></td><td>6（范围 2~32）</td><td>接收 AMDPU Block Ack 窗口。iperf 压测推荐 9~12；用 PSRAM 建议 ≥ 16</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>IRAM 优化（速度 vs IRAM 占用）：</strong></p>
+          <table class="props">
+            <thead><tr><th>选项</th><th>默认值</th><th>影响</th></tr></thead>
+            <tbody>
+              <tr><td><code>ESP32_WIFI_IRAM_OPT</code></td><td>y</td><td>WiFi 热点函数放 IRAM 运行（更快），关闭可省 10KB+ IRAM 但吞吐量下降</td></tr>
+              <tr><td><code>ESP32_WIFI_RX_IRAM_OPT</code></td><td>取决于平台</td><td>RX 路径热点函数放 IRAM，关闭省 17KB+ IRAM，性能略降</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>其他实用选项：</strong></p>
+          <table class="props">
+            <thead><tr><th>选项</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>ESP32_WIFI_STA_AUTO_DHCPV4</code></td><td>连接 WiFi 后自动发起 DHCPv4 拿 IP，省去手动调用 DHCP API</td></tr>
+              <tr><td><code>ESP32_WIFI_STA_RECONNECT</code></td><td>WiFi 断线后自动重连</td></tr>
+              <tr><td><code>ESP32_WIFI_NET_ALLOC_SPIRAM</code></td><td>把 WiFi 和网络栈内存分配到 SPIRAM，释放内部 RAM 给应用</td></tr>
+              <tr><td><code>ESP32_WIFI_ENABLE_WPA3_SAE</code></td><td>启用 WPA3-Personal 连接，会同时选中 MbedTLS 的 ECP/ECDH/ECDSA 等椭圆曲线密码套件</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags"><span class="tag">RX/TX Buffer</span><span class="tag">AMPDU</span><span class="tag">IRAM</span><span class="tag">WPA3</span><span class="tag">性能调优</span></div>
+        </div>
+      </div>
+
+      <!-- WiFi-4: 设备树配置 -->
+      <div class="qa-card" data-topics="wifi net" id="qa-wifi-3">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">ESP32 WiFi 的设备树要怎么配？WiFi 功能的完整启动流程是怎样的？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>设备树（ESP32-S3 为例）：</strong></p>
+          <pre><code>/* ESP32-S3 的 dtsi 中已定义 wifi 节点 */
+&amp;wifi {
+    status = "okay";   /* 使能 WiFi */
+};
+
+/* 同时需要网络接口 */
+&amp;netif {
+    status = "okay";
+};</code></pre>
+
+          <p><strong>prj.conf 最小配置：</strong></p>
+          <pre><code># ── WiFi 驱动 ──
+CONFIG_WIFI_ESP32=y
+CONFIG_ESP32_WIFI_STA_AUTO_DHCPV4=y
+CONFIG_ESP32_WIFI_STA_RECONNECT=y
+
+# ── 网络子系统 ──
+CONFIG_NETWORKING=y
+CONFIG_NET_IPV4=y
+CONFIG_NET_DHCPV4=y
+CONFIG_NET_TCP=y
+CONFIG_NET_SOCKETS=y
+CONFIG_DNS_RESOLVER=y
+
+# ── 日志（调试用） ──
+CONFIG_NET_LOG=y
+CONFIG_LOG=y</code></pre>
+
+          <p><strong>C 代码启动流程：</strong></p>
+          <div class="flow-diagram">
+            <span class="flow-step">① <code>net_if</code> 初始化<br><small>开机自动，无需手动干预</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">② 获取 WiFi 接口<br><small><code>net_if_get_wifi_sap()</code></small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">③ <code>net_mgmt(NET_REQUEST_WIFI_CONNECT)</code><br><small>发起连接请求</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">④ <code>NET_EVENT_L4_CONNECTED</code><br><small>DHCP 获取到 IP</small></span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">⑤ <code>socket()/connect()/send()</code><br><small>正常网络通信</small></span>
+          </div>
+
+          <div class="tags"><span class="tag">设备树</span><span class="tag">启动流程</span><span class="tag">net_if</span><span class="tag">net_mgmt</span></div>
         </div>
       </div>
 
