@@ -5948,6 +5948,76 @@ void mqtt_task(void)
         </div>
       </div>
 
+      <!-- WiFi-8: NET_L2_ETHERNET vs NET_L2_WIFI_MGMT -->
+      <div class="qa-card" data-topics="wifi net" id="qa-wifi-7">
+        <div class="q" onclick="this.parentElement.classList.toggle('open')">
+          <span class="marker">Q</span>
+          <span class="text">CONFIG_NET_L2_ETHERNET 和 CONFIG_NET_L2_WIFI_MGMT 分别是什么功能？有什么区别？</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="a">
+          <p><strong>两个选项都是 Zephyr 网络协议栈链路层（L2 — OSI 第 2 层）的配置</strong>，分别对应<strong>有线</strong>和<strong>无线</strong>两种物理介质。它们决定了链路层如何处理数据帧、管理连接和收发数据。</p>
+
+          <p><strong>CONFIG_NET_L2_ETHERNET — 以太网链路层：</strong></p>
+          <p>这是一个 <code>menuconfig</code>，开启后会暴露一整套以太网子选项。它对应用层透明——只要开启了，socket API 在以太网接口上的行为与 WiFi 接口完全一致。</p>
+          <table class="props">
+            <thead><tr><th>子选项</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>NET_ARP</code></td><td>ARP 协议 — 局域网内 IP 地址 → MAC 地址解析（以太网必需）</td></tr>
+              <tr><td><code>NET_VLAN</code></td><td>VLAN 虚拟局域网标签（802.1Q），多租户网络隔离</td></tr>
+              <tr><td><code>NET_ETHERNET_BRIDGE</code></td><td>以太网桥接 — 多个物理网口之间转发帧（像交换机）</td></tr>
+              <tr><td><code>NET_L2_ETHERNET_MGMT</code></td><td>以太网管理接口 — 链路状态、速率协商等</td></tr>
+            </tbody>
+          </table>
+          <p><strong>使用场景：</strong>STM32 + LAN8720 PHY 有线网口、qemu_x86 模拟以太网、SLIP/TAP 调试。ESP32 没有有线以太网 MAC，<strong>不需要开启</strong>。</p>
+
+          <p><strong>CONFIG_NET_L2_WIFI_MGMT — WiFi 管理框架：</strong></p>
+          <p>被 <code>WIFI_ESP32</code> 自动 select，开启 WiFi 时不需要手动配置。它强制选中：</p>
+          <table class="props">
+            <thead><tr><th>自动选中的选项</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>NET_MGMT</code></td><td>网络管理框架 — 提供通用 <code>net_mgmt()</code> API，WiFi 的扫描/连接/断开都通过它发起</td></tr>
+              <tr><td><code>NET_MGMT_EVENT</code></td><td>网络事件系统 — <code>NET_EVENT_L4_CONNECTED</code>（IP 就绪）、<code>NET_EVENT_WIFI_CONNECT_RESULT</code> 等事件</td></tr>
+              <tr><td><code>NET_MGMT_EVENT_INFO</code></td><td>事件附带详细信息 — 连接结果中的 SSID、BSSID、信道、信号强度等</td></tr>
+              <tr><td><code>NET_L2_WIFI_UTILS</code></td><td>WiFi 工具函数 — 信道/频率互相换算等</td></tr>
+            </tbody>
+          </table>
+          <p><strong>提供的管理 API：</strong></p>
+          <table class="props">
+            <thead><tr><th>net_mgmt 请求</th><th>功能</th></tr></thead>
+            <tbody>
+              <tr><td><code>NET_REQUEST_WIFI_SCAN</code></td><td>扫描附近 WiFi</td></tr>
+              <tr><td><code>NET_REQUEST_WIFI_CONNECT</code></td><td>连接指定 AP</td></tr>
+              <tr><td><code>NET_REQUEST_WIFI_DISCONNECT</code></td><td>断开当前连接</td></tr>
+              <tr><td><code>NET_REQUEST_WIFI_AP_ENABLE</code></td><td>开启 Soft AP 模式</td></tr>
+              <tr><td><code>NET_REQUEST_WIFI_AP_DISABLE</code></td><td>关闭 Soft AP 模式</td></tr>
+              <tr><td><code>NET_REQUEST_WIFI_IFACE_STATUS</code></td><td>查询接口状态（连接中/已连接/已断开）</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>完整对比：</strong></p>
+          <table class="props">
+            <thead><tr><th>对比项</th><th>NET_L2_ETHERNET</th><th>NET_L2_WIFI_MGMT</th></tr></thead>
+            <tbody>
+              <tr><td>物理介质</td><td>有线以太网（RJ45 / PHY 芯片）</td><td>WiFi 无线（802.11 b/g/n/ax）</td></tr>
+              <tr><td>帧格式</td><td>Ethernet II / IEEE 802.3</td><td>802.11 MAC 帧</td></tr>
+              <tr><td>核心协议</td><td>ARP、VLAN、STP</td><td>扫描、认证（WPA/WPA2/WPA3）、关联</td></tr>
+              <tr><td>连接模型</td><td>插网线即连接（物理链路检测）</td><td>需要主动扫描 + 选择 + 认证（管理框架驱动）</td></tr>
+              <tr><td>地址解析</td><td>ARP（IP → MAC）</td><td>WiFi 帧自带地址字段，不需要 ARP</td></tr>
+              <tr><td>ESP32 需要？</td><td>不需要</td><td>需要（被 WIFI_ESP32 自动 select）</td></tr>
+              <tr><td>能否共存？</td><td colspan="2" style="text-align:center;">可以 — 设备同时有以太网口 + WiFi 时两个都开，Zephyr 会创建两个 net_if 接口</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout note">
+            <span class="callout-icon">&#8505;&#65039;</span>
+            <span><strong>结论：</strong>ESP32 WiFi 场景只需 <code>WIFI_ESP32=y</code>，它会自动选中 <code>NET_L2_WIFI_MGMT</code> 及其四个依赖（<code>NET_MGMT</code> + <code>NET_MGMT_EVENT</code> + <code>NET_MGMT_EVENT_INFO</code> + <code>NET_L2_WIFI_UTILS</code>）。不需要手动碰 <code>NET_L2_ETHERNET</code> 或 <code>NET_L2_WIFI_MGMT</code>。</span>
+          </div>
+
+          <div class="tags"><span class="tag">NET_L2</span><span class="tag">Ethernet</span><span class="tag">WiFi MGMT</span><span class="tag">链路层</span><span class="tag">net_mgmt</span></div>
+        </div>
+      </div>
+
     </div>
   </section>
 
